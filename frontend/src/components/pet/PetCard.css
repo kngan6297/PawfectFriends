@@ -1,0 +1,31 @@
+.pet-card {
+  @apply block overflow-hidden rounded-lg bg-white shadow-md transition-all duration-300 hover:shadow-lg;
+}
+
+.pet-image {
+  @apply h-full w-full object-cover transition-transform duration-300;
+}
+
+.pet-card:hover .pet-image {
+  @apply scale-105;
+}
+
+.pet-info {
+  @apply p-4;
+}
+
+.pet-name {
+  @apply text-lg font-semibold text-gray-900;
+}
+
+.favorite-button {
+  @apply absolute top-2 right-2 rounded-full bg-white/80 p-2 shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:shadow-md;
+}
+
+.favorite-button:hover {
+  @apply scale-110;
+}
+
+.favorite-button:focus {
+  @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+} 

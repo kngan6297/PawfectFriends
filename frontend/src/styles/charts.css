@@ -1,0 +1,73 @@
+/* Chart color variables for theming */
+:root {
+  /* Light theme chart colors */
+  --chart-primary: #3b82f6;
+  --chart-success: #10b981;
+  --chart-warning: #f59e0b;
+  --chart-danger: #ef4444;
+  --chart-mute: #6b7280;
+  --chart-info: #06b6d4;
+  --chart-purple: #8b5cf6;
+  --chart-pink: #ec4899;
+}
+
+/* Dark theme chart colors */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --chart-primary: #60a5fa;
+    --chart-success: #34d399;
+    --chart-warning: #fbbf24;
+    --chart-danger: #f87171;
+    --chart-mute: #9ca3af;
+    --chart-info: #22d3ee;
+    --chart-purple: #a78bfa;
+    --chart-pink: #f472b6;
+  }
+}
+
+/* Dark mode override (when explicitly set) */
+.dark {
+  --chart-primary: #60a5fa;
+  --chart-success: #34d399;
+  --chart-warning: #fbbf24;
+  --chart-danger: #f87171;
+  --chart-mute: #9ca3af;
+  --chart-info: #22d3ee;
+  --chart-purple: #a78bfa;
+  --chart-pink: #f472b6;
+}
+
+/* Chart container styling */
+.chart-container {
+  /* Ensure charts respect theme colors */
+  color: inherit;
+}
+
+/* Chart tooltip styling */
+.recharts-tooltip-wrapper {
+  /* Ensure tooltips are visible in both themes */
+  background-color: var(--background, white);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Chart legend styling */
+.recharts-legend-wrapper {
+  /* Ensure legend text is visible */
+  color: var(--foreground, #111827);
+}
+
+/* Chart axis styling */
+.recharts-cartesian-axis-tick-value {
+  fill: var(--foreground, #111827);
+}
+
+.recharts-cartesian-axis-tick-line {
+  stroke: var(--border, #e5e7eb);
+}
+
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--border, #e5e7eb);
+}

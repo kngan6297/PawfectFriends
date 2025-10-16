@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PawfectFriends Chat</title>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <!-- Zego Configuration Fallback -->
+    <script>
+      // Fallback configuration if environment variables fail to load
+      window.zimappconfig = {
+        appID: "YOUR_ZEGO_APP_ID_HERE",
+        serverSecret: "YOUR_ZEGO_SERVER_SECRET_HERE",
+      };
+      console.log("🔧 Zego config loaded from HTML fallback:", {
+        appID: window.zimappconfig.appID,
+        serverSecret: "***",
+      });
+    </script>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

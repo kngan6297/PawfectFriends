@@ -1,0 +1,53 @@
+/* Responsive Grid Utilities */
+.grid-auto-fit-kpi {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.grid-auto-fit-pending {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.grid-auto-fit-buttons {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.grid-auto-fit-pets {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+/* Responsive breakpoints for different content types */
+@media (max-width: 640px) {
+  .grid-auto-fit-kpi {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+  
+  .grid-auto-fit-pending {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+  
+  .grid-auto-fit-buttons {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+  
+  .grid-auto-fit-pets {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-auto-fit-kpi {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  .grid-auto-fit-pending {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+  
+  .grid-auto-fit-buttons {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+  
+  .grid-auto-fit-pets {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}

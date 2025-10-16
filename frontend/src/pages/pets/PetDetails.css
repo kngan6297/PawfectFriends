@@ -1,0 +1,79 @@
+.pet-gallery {
+  @apply space-y-4;
+}
+
+.pet-gallery-main {
+  @apply relative aspect-square overflow-hidden rounded-lg;
+}
+
+.pet-gallery-main img {
+  @apply h-full w-full object-cover transition-transform duration-300;
+}
+
+.pet-gallery-thumbnails {
+  @apply grid grid-cols-4 gap-2;
+}
+
+.pet-gallery-thumbnail {
+  @apply aspect-square overflow-hidden rounded-lg transition-all duration-200;
+}
+
+.pet-gallery-thumbnail:hover {
+  @apply opacity-75;
+}
+
+.pet-gallery-thumbnail.active {
+  @apply ring-2 ring-primary-500;
+}
+
+.pet-info {
+  @apply space-y-6;
+}
+
+.pet-header {
+  @apply flex items-start justify-between;
+}
+
+.pet-title {
+  @apply text-3xl font-bold text-gray-900;
+}
+
+.pet-subtitle {
+  @apply mt-1 text-lg text-gray-600;
+}
+
+.pet-details {
+  @apply rounded-lg bg-gray-50 p-6;
+}
+
+.pet-details-title {
+  @apply mb-4 text-xl font-semibold text-gray-900;
+}
+
+.pet-details-section {
+  @apply space-y-4;
+}
+
+.pet-details-section-title {
+  @apply font-medium text-gray-900;
+}
+
+.pet-details-section-content {
+  @apply mt-1 text-gray-600;
+}
+
+.pet-details-list {
+  @apply mt-2 space-y-2;
+}
+
+.pet-details-list-item {
+  @apply flex items-center text-gray-600;
+}
+
+.pet-details-list-bullet {
+  @apply mr-2;
+}
+
+.adopt-button {
+  @apply w-full rounded-md bg-primary-500 px-6 py-3 text-lg font-medium text-white transition-colors duration-200 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+} 

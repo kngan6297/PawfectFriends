@@ -1,0 +1,48 @@
+// PawfectFriends Brand Colors
+$--colors: (
+  "primary": (
+    "base": #4a90e2,
+    // Pet-friendly blue
+  ),
+  "success": (
+    "base": #7ed321,
+    // Fresh green
+  ),
+  "warning": (
+    "base": #f5a623,
+    // Warm orange
+  ),
+  "danger": (
+    "base": #d0021b,
+    // Alert red
+  ),
+  "error": (
+    "base": #d0021b,
+    // Alert red
+  ),
+  "info": (
+    "base": #50e3c2,
+    // Teal blue
+  ),
+);
+
+// Custom brand variables
+$brand-primary: #4a90e2;
+$brand-secondary: #7ed321;
+$brand-accent: #f5a623;
+$brand-warm: #ff6b6b;
+$brand-soft: #f8f9fa;
+
+// You should use them in scss, because we calculate it by sass.
+// comment next lines to use default color
+@forward "element-plus/theme-chalk/src/common/var.scss" with (
+  // do not use same name, it will override.
+  $colors: $--colors,
+  $button-padding-horizontal: ("default": 50px)
+);
+
+// Element Plus styles are imported in main.ts, so we don't need to import them here
+// @use "element-plus/theme-chalk/src/index.scss" as *;
+
+// // You can comment it to hide debug info.
+// @debug $--colors;

@@ -1,0 +1,35 @@
+/* Skeleton component styles */
+.skeleton-container {
+  /* Container for skeleton content */
+}
+
+.skeleton-chart-height {
+  height: 280px;
+}
+
+.skeleton-chart-height-large {
+  height: 288px;
+}
+
+/* Skeleton animation */
+@keyframes skeleton-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.skeleton-pulse {
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Dark mode skeleton colors */
+.dark .skeleton-bg {
+  background-color: #374151; /* gray-700 */
+}
+
+.dark .skeleton-bg-light {
+  background-color: #4b5563; /* gray-600 */
+}

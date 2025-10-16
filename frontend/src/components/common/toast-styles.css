@@ -1,0 +1,70 @@
+/* Custom Toast Styles */
+.custom-toast {
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  font-family: inherit;
+}
+
+.custom-toast-body {
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px 16px;
+}
+
+.custom-toast-progress {
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .custom-toast {
+  background: rgba(31, 41, 55, 0.95);
+  color: #f9fafb;
+  border-color: rgba(75, 85, 99, 0.3);
+}
+
+/* Light mode adjustments */
+[data-theme="light"] .custom-toast {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  border-color: rgba(229, 231, 235, 0.5);
+}
+
+/* Success toast styling */
+.Toastify__toast--success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+/* Error toast styling */
+.Toastify__toast--error {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+}
+
+/* Warning toast styling */
+.Toastify__toast--warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+/* Info toast styling */
+.Toastify__toast--info {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .custom-toast {
+    margin: 8px;
+    border-radius: 8px;
+  }
+
+  .custom-toast-body {
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+}

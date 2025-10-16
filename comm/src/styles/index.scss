@@ -1,0 +1,453 @@
+// PawfectFriends Brand Colors
+$brand-primary: #4a90e2;
+$brand-secondary: #7ed321;
+$brand-accent: #f5a623;
+$brand-warm: #ff6b6b;
+$brand-soft: #f8f9fa;
+$brand-dark: #2c3e50;
+
+$border: 1px solid var(--el-border-color-light);
+
+// Global brand button styles
+.el-button--primary {
+  background: linear-gradient(
+    135deg,
+    $brand-primary 0%,
+    #357abd 100%
+  ) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+
+  &:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba($brand-primary, 0.3) !important;
+  }
+}
+
+.el-button--success {
+  background: linear-gradient(
+    135deg,
+    $brand-secondary 0%,
+    #6bc02e 100%
+  ) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+
+  &:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba($brand-secondary, 0.3) !important;
+  }
+}
+
+.el-button--warning {
+  background: linear-gradient(
+    135deg,
+    $brand-accent 0%,
+    #e8a317 100%
+  ) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+
+  &:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba($brand-accent, 0.3) !important;
+  }
+}
+
+.el-button--danger {
+  background: linear-gradient(135deg, $brand-warm 0%, #e74c3c 100%) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+
+  &:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba($brand-warm, 0.3) !important;
+  }
+}
+
+// Brand input styles
+.el-input__wrapper {
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+
+  &:hover,
+  &:focus-within {
+    box-shadow: 0 0 0 2px rgba($brand-primary, 0.1) !important;
+  }
+}
+
+// Brand tag styles
+.el-tag {
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+
+  &:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  }
+}
+
+body,
+ul,
+p {
+  margin: 0;
+  padding: 0;
+}
+li {
+  display: block;
+}
+body {
+  font-size: 14px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, $brand-soft 0%, #e8f4fd 100%);
+}
+
+.el-overlay-dialog {
+  overflow: hidden;
+}
+.el-dialog__body {
+  overflow: auto;
+  .el-form-item__content {
+    .el-col + .el-col {
+      padding-left: 8px !important;
+      padding-right: 0 !important;
+    }
+  }
+}
+
+.el-tag {
+  margin-right: 6px;
+  margin-bottom: 6px;
+}
+
+.bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, $brand-soft 0%, #e8f4fd 100%);
+}
+
+.ellipsis {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.highlight {
+  color: $brand-secondary;
+}
+.atmsg {
+  color: $brand-primary;
+
+  &_me {
+    color: white;
+    border-radius: 12px;
+    background-color: $brand-primary;
+  }
+}
+.right {
+  float: right;
+}
+.title {
+  font-weight: bold;
+  color: $brand-dark;
+}
+.tips {
+  font-size: 12px;
+  color: #6c757d;
+}
+.flex {
+  display: flex;
+  justify-content: space-between;
+}
+.fr {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+.flex1 {
+  flex: 1;
+}
+.active {
+  background: linear-gradient(
+    135deg,
+    rgba($brand-accent, 0.1) 0%,
+    rgba($brand-accent, 0.05) 100%
+  );
+  border-left: 3px solid $brand-accent;
+}
+.pinned {
+  background: linear-gradient(
+    135deg,
+    rgba($brand-secondary, 0.1) 0%,
+    rgba($brand-secondary, 0.05) 100%
+  );
+  border-left: 3px solid $brand-secondary;
+}
+.red {
+  color: $brand-warm;
+}
+.nodata {
+  flex: 1;
+  text-align: center;
+  padding-top: 200px;
+  color: $brand-dark;
+  font-size: 16px;
+}
+.pointer {
+  cursor: pointer;
+}
+
+.container {
+  width: 896px;
+  height: 544px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  background-color: white;
+  box-shadow: 0 8px 32px rgba($brand-primary, 0.1);
+  border-radius: 16px;
+  border: 1px solid rgba($brand-primary, 0.1);
+
+  // Add subtle brand pattern
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: radial-gradient(
+        circle at 20% 20%,
+        rgba($brand-secondary, 0.03) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 80%,
+        rgba($brand-accent, 0.03) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 40% 60%,
+        rgba($brand-warm, 0.02) 0%,
+        transparent 50%
+      );
+    border-radius: 16px;
+    pointer-events: none;
+  }
+}
+
+.lds-ellipsis {
+  display: inline-block;
+  position: relative;
+  //width: 30px;
+  height: 30px;
+  margin: 0 auto;
+  transform: translateX(-24px);
+}
+.lds-ellipsis div {
+  position: absolute;
+  top: 12px;
+  left: -15px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $brand-primary;
+  animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+.lds-ellipsis div:nth-child(1) {
+  left: 5px;
+  animation: lds-ellipsis1 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(2) {
+  left: 5px;
+  animation: lds-ellipsis2 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(3) {
+  left: 20px;
+  animation: lds-ellipsis2 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(4) {
+  left: 35px;
+  animation: lds-ellipsis3 0.6s infinite;
+}
+@keyframes lds-ellipsis1 {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes lds-ellipsis3 {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+@keyframes lds-ellipsis2 {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(15px, 0);
+  }
+}
+
+.scroll-dialog {
+  max-height: 340px;
+
+  li {
+    display: flex;
+    align-content: center;
+    padding-bottom: 6px;
+    justify-content: space-between;
+  }
+  li + li {
+    border-top: $border;
+  }
+
+  &_column {
+    li {
+      flex-direction: column;
+    }
+  }
+  &_footer {
+    max-height: 280px;
+  }
+
+  .msg-reply {
+    color: $brand-primary;
+    display: flex;
+    align-items: center;
+    > span {
+      padding-left: 6px;
+    }
+  }
+
+  .item {
+    padding: 4px 0;
+    border-bottom: $border;
+    display: flex;
+    align-items: center;
+
+    .el-avatar {
+      margin-right: 8px;
+    }
+    .el-icon,
+    .el-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+    .el-icon + .el-icon {
+      margin-right: 12px;
+    }
+    .icon {
+      line-height: 20px;
+      .el-icon {
+        margin-top: 2px;
+        cursor: pointer;
+      }
+    }
+  }
+}
+
+.app-conf-dialog .el-dialog__body {
+  max-height: 280px;
+}
+
+.convs-dialog .el-dialog__body {
+  max-height: 280px;
+  .item {
+    display: flex;
+    align-items: center;
+    padding: 3px 0;
+    > span {
+      font-size: 12px;
+    }
+    .name {
+      flex: 1;
+      padding-left: 6px;
+    }
+  }
+}
+
+.combine-dialog {
+  .el-dialog__header {
+    display: flex;
+    align-items: center;
+
+    .is-link .el-icon svg {
+      width: 1em;
+      height: 1em;
+      color: $brand-primary;
+    }
+
+    .el-dialog__title {
+      flex: 1;
+      margin-left: -52px;
+    }
+  }
+  .el-dialog__body {
+    max-height: 340px;
+    .item {
+      padding: 0 6px 6px;
+      display: flex;
+      align-items: flex-start;
+
+      .combinemsg {
+        max-width: 340px;
+        cursor: pointer;
+
+        > span {
+          display: flex;
+          font-weight: bold;
+
+          &::before {
+            content: "";
+            display: inline-block;
+            width: 3px;
+            height: 16px;
+            background-color: $brand-accent;
+            margin-right: 6px;
+            margin-top: 2px;
+          }
+        }
+      }
+      .name {
+        color: #6c757d;
+        font-size: 12px;
+        max-width: 280px;
+      }
+
+      .msg-wrap {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        padding: 0 6px;
+        .msg {
+          flex: 1;
+          padding: 4px;
+          border-radius: 4px;
+          word-break: break-all;
+          background: linear-gradient(
+            135deg,
+            rgba($brand-primary, 0.05) 0%,
+            rgba($brand-primary, 0.02) 100%
+          );
+        }
+      }
+    }
+  }
+}
