@@ -5,7 +5,8 @@ console.log('🔍 Environment variables:', {
     VITE_ZEGO_APP_ID: import.meta.env.VITE_ZEGO_APP_ID,
     VITE_ZEGO_SERVER_SECRET: import.meta.env.VITE_ZEGO_SERVER_SECRET ? '***' : 'NOT_SET',
     VITE_ZEGO_APP_ID_TYPE: typeof import.meta.env.VITE_ZEGO_APP_ID,
-    VITE_ZEGO_SERVER_SECRET_TYPE: typeof import.meta.env.VITE_ZEGO_SERVER_SECRET
+    VITE_ZEGO_SERVER_SECRET_TYPE: typeof import.meta.env.VITE_ZEGO_SERVER_SECRET,
+    ALL_ENV_VARS: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
 });
 
 // More robust environment variable handling
@@ -17,7 +18,7 @@ const fallbackAppID = localStorage.getItem('VITE_ZEGO_APP_ID');
 const fallbackServerSecret = localStorage.getItem('VITE_ZEGO_SERVER_SECRET');
 
 export const appConfig = {
-    appID: appIDFromEnv ? Number(appIDFromEnv) : (fallbackAppID ? Number(fallbackAppID) : 0), // AppID from environment variable or fallback
+    appID: appIDFromEnv ? parseInt(appIDFromEnv, 10) : (fallbackAppID ? parseInt(fallbackAppID, 10) : 0), // AppID from environment variable or fallback
     serverSecret: serverSecretFromEnv || fallbackServerSecret || '', // ServerSecret from environment variable or fallback
 };
 
@@ -36,6 +37,15 @@ if (appConfig.appID === 0 || !appConfig.serverSecret) {
     console.error('Please check your .env file or use the HTML fallback configuration.');
 } else {
     console.log('✅ Zego configuration is valid and ready to use!');
+    console.log('🔍 AppID:', appConfig.appID, 'Type:', typeof appConfig.appID);
+    console.log('🔍 ServerSecret length:', appConfig.serverSecret.length);
+
+    // Test if AppID is a valid number
+    if (isNaN(appConfig.appID) || appConfig.appID <= 0) {
+        console.error('❌ AppID is not a valid positive number!');
+    } else {
+        console.log('✅ AppID format is valid');
+    }
 }
 
 // @ts-ignore Only for develop test

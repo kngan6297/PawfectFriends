@@ -182,9 +182,7 @@ class AnalyticsExportService {
         if (options.includeMetadata) {
             exportData.metadata = {
                 ...exportData.metadata,
-                generatedBy: 'PawfectFriends Analytics',
-                version: '1.0.0',
-                exportOptions: options,
+                filters: options.filters,
             };
         }
 
