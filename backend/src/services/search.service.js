@@ -92,6 +92,11 @@ class SearchService {
     const { query, type, breed, size, status, location } = filters;
     const searchQuery = {};
 
+    // Default to only showing adoptable pets if no status is specified
+    if (!status) {
+      searchQuery.status = 'adoptable';
+    }
+
     // Text search using regex for partial matching
     if (query && query.trim()) {
       const trimmedQuery = query.trim();

@@ -9,11 +9,9 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Image,
   Platform,
-  TextInput,
   LayoutAnimation,
   UIManager,
   ActivityIndicator,
@@ -33,6 +31,7 @@ import { petService } from "@/services/petService";
 import { Pet } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "@/hooks/useTheme";
+import { petId } from "@/utils";
 
 if (
   Platform.OS === "android" &&
@@ -89,10 +88,6 @@ export default function AuthenticatedHomeScreen() {
   });
 
   // state
-  const [query, setQuery] = useState("");
-  const [species, setSpecies] = useState<"all" | "dog" | "cat" | "other">(
-    "all"
-  );
   const [featured, setFeatured] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -102,11 +97,32 @@ export default function AuthenticatedHomeScreen() {
     try {
       setError(null);
       setLoading(true);
-      const f1 = await petService.getLatestPets(8);
 
-      console.log("Featured response:", f1);
+      // Fetch both featured pets and user's favorites
+      const [featuredResponse, favoritesResponse] = await Promise.all([
+        petService.getLatestPets(8),
+        petService.getFavorites(),
+      ]);
 
-      if (f1.success && f1.data) setFeatured(f1.data);
+      console.log("Featured response:", featuredResponse);
+      console.log("Favorites response:", favoritesResponse);
+
+      if (featuredResponse.success && featuredResponse.data) {
+        // Get favorite pet IDs
+        const favoriteIds =
+          favoritesResponse.success && favoritesResponse.data
+            ? favoritesResponse.data.map((pet: Pet) => petId(pet))
+            : [];
+
+        // Enrich featured pets with favorite status
+        const enrichedFeatured = featuredResponse.data.map((pet: Pet) => ({
+          ...pet,
+          isFavorite: favoriteIds.includes(petId(pet)),
+        }));
+
+        setFeatured(enrichedFeatured);
+      }
+
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     } catch (e) {
       setError("Network error while loading pets.");
@@ -130,17 +146,7 @@ export default function AuthenticatedHomeScreen() {
   const petId = (p: any) => p?.id ?? p?._id;
 
   // actions
-  const onSearch = useCallback(() => {
-    router.push({
-      pathname: "/(tabs)/search",
-      params: { q: query || undefined, species },
-    } as any);
-  }, [router, query, species]);
-
-  const clearSearch = useCallback(() => {
-    setQuery("");
-  }, []);
-
+  const goToSearch = () => router.push("/(tabs)/search");
   const goToProfile = () => router.push("/(tabs)/profile");
   const goToFavorites = () => router.push("/(tabs)/favorites");
   const goToAdoptions = () => router.push("/(tabs)/adoptions");
@@ -150,11 +156,6 @@ export default function AuthenticatedHomeScreen() {
   const heroScale = scrollY.interpolate({
     inputRange: [0, 120],
     outputRange: [1, 0.96],
-    extrapolate: "clamp",
-  });
-  const searchTranslateY = scrollY.interpolate({
-    inputRange: [0, 120],
-    outputRange: [0, -8],
     extrapolate: "clamp",
   });
 
@@ -222,73 +223,6 @@ export default function AuthenticatedHomeScreen() {
           />
         </LinearGradient>
       </Animated.View>
-
-      {/* Search Pill (overlay look) */}
-      <Animated.View
-        style={[
-          styles.searchWrap,
-          { transform: [{ translateY: searchTranslateY }] },
-        ]}
-      >
-        <View
-          style={[
-            styles.searchCard,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-            shadow,
-          ]}
-        >
-          <Ionicons name="search" size={18} color="#6B7280" />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search by name, breed, location..."
-            placeholderTextColor="#9CA3AF"
-            style={styles.searchInput}
-            returnKeyType="search"
-            onSubmitEditing={onSearch}
-            accessibilityLabel="Search input"
-          />
-          {!!query && (
-            <TouchableOpacity
-              onPress={clearSearch}
-              accessibilityLabel="Clear search"
-            >
-              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            onPress={onSearch}
-            accessibilityLabel="Run search"
-            style={styles.searchGo}
-          >
-            <Text style={styles.searchGoText}>Search</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-
-      {/* Category Chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-        style={{ marginTop: 12 }}
-      >
-        {(
-          [
-            { key: "all", label: "All" },
-            { key: "dog", label: "Dogs" },
-            { key: "cat", label: "Cats" },
-            { key: "other", label: "Other" },
-          ] as const
-        ).map((c) => (
-          <Chip
-            key={c.key}
-            label={c.label}
-            active={species === c.key}
-            onPress={() => setSpecies(c.key)}
-          />
-        ))}
-      </ScrollView>
 
       {/* Featured */}
       <SectionHeader
@@ -387,6 +321,16 @@ export default function AuthenticatedHomeScreen() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
+              onPress={goToSearch}
+              style={styles.actionItem}
+              accessibilityLabel="Search Pets"
+            >
+              <Ionicons name="search" size={24} color={PF.indigo} />
+              <Text style={[styles.actionItemText, { color: colors.text }]}>
+                Search
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={goToProfile}
               style={styles.actionItem}
               accessibilityLabel="My Profile"
@@ -394,16 +338,6 @@ export default function AuthenticatedHomeScreen() {
               <Ionicons name="person" size={24} color={PF.indigo} />
               <Text style={[styles.actionItemText, { color: colors.text }]}>
                 Profile
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onSearch}
-              style={styles.actionItem}
-              accessibilityLabel="Search Pets"
-            >
-              <Ionicons name="search" size={24} color={PF.indigo} />
-              <Text style={[styles.actionItemText, { color: colors.text }]}>
-                Search
               </Text>
             </TouchableOpacity>
           </View>
@@ -455,26 +389,6 @@ function SectionHeader({
         </Text>
       )}
     </View>
-  );
-}
-
-function Chip({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity onPress={onPress} accessibilityLabel={label}>
-      <View style={[styles.chip, active ? styles.chipActive : null]}>
-        <Text style={[styles.chipText, active ? styles.chipTextActive : null]}>
-          {label}
-        </Text>
-      </View>
-    </TouchableOpacity>
   );
 }
 
@@ -531,17 +445,51 @@ function HorizontalSkeleton() {
 }
 
 function PetCardLarge({ pet, onPress }: { pet: Pet; onPress: () => void }) {
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(pet.isFavorite || false);
+  const [isToggling, setIsToggling] = useState(false);
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
   const img =
     pet?.photos?.[0]?.url ||
     "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&q=80";
 
-  const handleFavoritePress = (e: any) => {
+  const handleFavoritePress = async (e: any) => {
     e.stopPropagation(); // Prevent triggering the card press
-    setIsFavorite((v) => !v);
-    // TODO: call API toggle
+
+    if (!isAuthenticated) {
+      Alert.alert(
+        "Login Required",
+        "Please login to save pets to your favorites",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Login", onPress: () => router.push("/(auth)/login") },
+        ]
+      );
+      return;
+    }
+
+    if (isToggling) return; // Prevent multiple rapid clicks
+
+    try {
+      setIsToggling(true);
+      const currentPetId = petId(pet);
+      console.log("Heart button pressed for pet:", currentPetId);
+
+      const result = await petService.toggleFavorite(currentPetId);
+      console.log("Toggle favorite result:", result);
+
+      if (result.success) {
+        setIsFavorite(result.data.isFavorite);
+      } else {
+        console.error("Failed to toggle favorite:", result.message);
+        Alert.alert("Error", result.message || "Failed to update favorites");
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      Alert.alert("Error", "Failed to update favorites");
+    } finally {
+      setIsToggling(false);
+    }
   };
 
   return (
@@ -597,11 +545,15 @@ function PetCardLarge({ pet, onPress }: { pet: Pet; onPress: () => void }) {
             isFavorite ? "Remove from favorites" : "Add to favorites"
           }
         >
-          <Ionicons
-            name={isFavorite ? "heart" : "heart-outline"}
-            size={18}
-            color={isFavorite ? "#ef4444" : "#374151"}
-          />
+          {isToggling ? (
+            <ActivityIndicator size="small" color="#ef4444" />
+          ) : (
+            <Ionicons
+              name={isFavorite ? "heart" : "heart-outline"}
+              size={18}
+              color={isFavorite ? "#ef4444" : "#374151"}
+            />
+          )}
         </TouchableOpacity>
 
         <View style={{ position: "absolute", left: 12, right: 12, bottom: 12 }}>
@@ -657,39 +609,6 @@ const styles = StyleSheet.create({
   heroImage: { width: 120, height: 120, resizeMode: "cover" },
   headline: { color: "#fff", fontSize: 22, fontWeight: "900", marginBottom: 6 },
   subhead: { color: "#eef2ff", fontSize: 13, lineHeight: 18 },
-
-  // Search pill
-  searchWrap: { paddingHorizontal: 16, marginTop: 10, marginBottom: 8 },
-  searchCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  searchInput: { flex: 1, fontSize: 14 },
-  searchGo: {
-    backgroundColor: "#6366F1", // purple indigo
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  searchGoText: { color: "#fff", fontWeight: "900", fontSize: 12 },
-
-  // Chips
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    marginHorizontal: 4,
-  },
-  chipActive: { backgroundColor: "#6366F1", borderColor: "#6366F1" },
-  chipText: { fontWeight: "800", color: "#111827", fontSize: 12 },
-  chipTextActive: { color: "#fff" },
 
   // Retry
   retryBtn: {

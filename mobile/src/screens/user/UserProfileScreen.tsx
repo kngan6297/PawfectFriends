@@ -1,34 +1,44 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Image,
   Alert,
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuthStore } from "@/store/authStore";
 import { useUserProfile } from "@/hooks/useUser";
 import { useTheme } from "@/hooks/useTheme";
-import { petService } from "@/services/petService";
 import { pageContainer, scrollContent, GUTTER } from "@/ui/layout";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
-import { Pet } from "@/types";
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const { user, logout } = useAuthStore();
-  const { data: profile, isLoading, error, refetch } = useUserProfile();
+  const {
+    data: profile,
+    isLoading,
+    error,
+    refetch,
+    isFetching,
+  } = useUserProfile();
+  const [avatarError, setAvatarError] = useState(false);
+  const lastRefetchTime = useRef<number>(0);
+  const refetchRef = useRef(refetch);
 
-  const [suggested, setSuggested] = useState<Pet[]>([]);
-  const [suggLoading, setSuggLoading] = useState(false);
+  // Update refetch ref when it changes
+  useEffect(() => {
+    refetchRef.current = refetch;
+  }, [refetch]);
 
   const PF = useMemo(() => ({ indigo: "#6366F1", violet: "#7C3AED" }), []);
   const shadow = Platform.select({
@@ -43,36 +53,242 @@ export default function ProfileScreen() {
   });
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          await logout();
-          router.replace("/(auth)/login");
+    if (__DEV__) {
+      console.log("🚪 Logout button pressed");
+    }
+
+    // Use web-compatible confirmation for web environment
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm("Are you sure you want to logout?");
+      if (confirmed) {
+        if (__DEV__) {
+          console.log("🚪 Logout confirmed, executing logout...");
+        }
+        logout()
+          .then(() => {
+            router.replace("/(auth)/login");
+          })
+          .catch((error) => {
+            if (__DEV__) {
+              console.error("Logout error:", error);
+            }
+          });
+      }
+    } else {
+      // Use native Alert for mobile
+      Alert.alert("Logout", "Are you sure you want to logout?", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          style: "destructive",
+          onPress: async () => {
+            if (__DEV__) {
+              console.log("🚪 Logout confirmed, executing logout...");
+            }
+            try {
+              await logout();
+              router.replace("/(auth)/login");
+            } catch (error) {
+              if (__DEV__) {
+                console.error("Logout error:", error);
+              }
+            }
+          },
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   const handleEditProfile = () => {
     router.push("/profile/edit");
   };
 
-  useEffect(() => {
-    (async () => {
+  // Prioritize fresh API data over cached user data
+  const profileData = profile?.data || user;
+
+  // Helper function to validate URI format
+  const isValidUri = (uri: string | undefined): boolean => {
+    if (!uri || typeof uri !== "string" || uri.trim() === "") {
+      return false;
+    }
+
+    // Basic URI validation - must start with http/https
+    return uri.startsWith("http://") || uri.startsWith("https://");
+  };
+
+  // Helper function to check if avatar is valid using allowlist approach
+  const isValidAvatar = (avatarUrl: string | undefined): boolean => {
+    if (!avatarUrl || !avatarUrl.trim()) return false;
+
+    const lowerUrl = avatarUrl.toLowerCase();
+
+    // Allowlist of trusted domains and patterns
+    const allowedDomains = [
+      "cdn.pawfectfriends.com", // Our CDN
+      "res.cloudinary.com", // Cloudinary (specific subdomain)
+      "cloudinary.com", // Cloudinary main domain
+    ];
+
+    // Check if URL starts with https:// or http://
+    if (!lowerUrl.startsWith("http://") && !lowerUrl.startsWith("https://")) {
+      return false;
+    }
+
+    // Check if URL matches any allowed domain exactly
+    const isAllowedDomain = allowedDomains.some((domain) => {
       try {
-        setSuggLoading(true);
-        const res = await petService.getLatestPets(6);
-        setSuggested(res?.data ?? []);
-      } finally {
-        setSuggLoading(false);
+        const url = new URL(avatarUrl);
+        const hostname = url.hostname.toLowerCase();
+
+        // Exact match or subdomain match
+        return hostname === domain || hostname.endsWith(`.${domain}`);
+      } catch {
+        // Invalid URL
+        return false;
       }
-    })();
+    });
+
+    if (isAllowedDomain) {
+      // Additional validation for Cloudinary URLs
+      if (lowerUrl.includes("cloudinary.com")) {
+        // Block URLs that contain random avatar patterns
+        const randomAvatarPatterns = [
+          "random", // Random in filename
+          "default", // Default avatar
+          "placeholder", // Placeholder avatar
+          "sample", // Sample avatar
+          "demo", // Demo avatar
+        ];
+
+        const hasRandomPattern = randomAvatarPatterns.some((pattern) =>
+          lowerUrl.includes(pattern)
+        );
+
+        // If it has a random pattern, it's likely a random avatar
+        if (hasRandomPattern) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    // Fallback: Block known random avatar services
+    const blockedDomains = [
+      "pravatar.cc",
+      "placeholder.com",
+      "via.placeholder.com",
+      "ui-avatars.com",
+      "dicebear.com",
+      "gravatar.com",
+      "robohash.org",
+      "baconmockup.com",
+      "placekitten.com",
+      "picsum.photos",
+      "randomuser.me",
+      "thispersondoesnotexist.com",
+      "fakeimg.pl",
+      "loremflickr.com",
+      "source.unsplash.com",
+      "images.unsplash.com",
+      "unsplash.com",
+    ];
+
+    // Use exact domain matching instead of includes() to avoid false positives
+    try {
+      const url = new URL(avatarUrl);
+      const hostname = url.hostname.toLowerCase();
+
+      return !blockedDomains.some(
+        (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+      );
+    } catch {
+      // Invalid URL
+      return false;
+    }
+  };
+
+  // Avatar state helper - returns clear states for rendering
+  const avatarState = useMemo((): "initials" | "image" | "loading" => {
+    // Priority 1: No profile API data → loading
+    if (!profile?.data) {
+      return "loading";
+    }
+
+    // Priority 2: Avatar error → initials
+    if (avatarError) {
+      return "initials";
+    }
+
+    // Priority 3: Invalid avatar URL → initials
+    if (!isValidAvatar(profileData?.avatar)) {
+      return "initials";
+    }
+
+    // Priority 4: Valid avatar → image
+    return "image";
+  }, [profile?.data, avatarError, profileData?.avatar]);
+
+  // Track the last avatar URL to only reset error when URL actually changes
+  const [lastAvatarUrl, setLastAvatarUrl] = useState<string | undefined>();
+
+  useEffect(() => {
+    const currentAvatarUrl = profileData?.avatar;
+
+    // Only reset error if the URL actually changed to a different value
+    if (currentAvatarUrl !== lastAvatarUrl) {
+      if (__DEV__) {
+        console.log(
+          "🔄 Avatar URL changed from",
+          lastAvatarUrl,
+          "to",
+          currentAvatarUrl
+        );
+      }
+
+      // Reset error state when URL changes to give the new URL a chance
+      if (currentAvatarUrl && avatarError) {
+        if (__DEV__) {
+          console.log("🔄 Resetting error state due to URL change");
+        }
+        setAvatarError(false);
+      }
+
+      setLastAvatarUrl(currentAvatarUrl);
+    }
+  }, [profileData?.avatar, avatarError, lastAvatarUrl]);
+
+  // Debug component lifecycle
+  useEffect(() => {
+    if (__DEV__) {
+      console.log("🔄 ProfileScreen mounted");
+    }
+    return () => {
+      if (__DEV__) {
+        console.log("🔄 ProfileScreen unmounting");
+      }
+    };
   }, []);
 
-  const profileData = profile?.data || user;
+  // Refresh profile data when screen comes into focus
+  // Only refetch if not already fetching and not recently refetched
+  useFocusEffect(
+    React.useCallback(() => {
+      const now = Date.now();
+      const timeSinceLastRefetch = now - lastRefetchTime.current;
+
+      // Only refetch if:
+      // 1. Not currently fetching
+      // 2. Haven't refetched in the last 5 seconds
+      if (!isFetching && timeSinceLastRefetch > 5000) {
+        if (__DEV__) {
+          console.log("🔄 Refreshing profile data");
+        }
+        lastRefetchTime.current = now;
+        refetchRef.current();
+      }
+    }, [isFetching])
+  );
 
   return (
     <SafeAreaView
@@ -121,12 +337,61 @@ export default function ProfileScreen() {
                 shadow,
               ]}
             >
-              <Image
-                source={{
-                  uri: profileData?.avatar || "https://i.pravatar.cc/160",
-                }}
-                style={{ width: 56, height: 56, borderRadius: 28 }}
-              />
+              {avatarState === "loading" ? (
+                // Show loading placeholder while API data loads
+                <View
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 28,
+                    backgroundColor: colors.border,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons
+                    name="person"
+                    size={24}
+                    color={colors.textSecondary}
+                  />
+                </View>
+              ) : avatarState === "image" ? (
+                <Image
+                  source={{ uri: profileData?.avatar! }}
+                  style={{ width: 56, height: 56, borderRadius: 28 }}
+                  resizeMode="cover"
+                  onError={() => {
+                    if (__DEV__) {
+                      console.log(
+                        "Avatar image failed to load, falling back to initials"
+                      );
+                    }
+                    setAvatarError(true);
+                  }}
+                />
+              ) : (
+                // avatarState === "initials"
+                <View
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 28,
+                    backgroundColor: PF.indigo,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#fff",
+                      fontSize: 20,
+                      fontWeight: "900",
+                    }}
+                  >
+                    {profileData?.name?.charAt(0)?.toUpperCase() || "U"}
+                  </Text>
+                </View>
+              )}
               <View style={{ flex: 1 }}>
                 <Text
                   style={{
@@ -173,6 +438,8 @@ export default function ProfileScreen() {
               </View>
               <TouchableOpacity
                 onPress={() => router.push("/(tabs)/adoptions")}
+                accessibilityRole="button"
+                accessibilityLabel="View my adoption applications"
               >
                 <View style={[styles.mini, { backgroundColor: "#EEF2FF" }]}>
                   <Ionicons name="paw" size={14} color={PF.indigo} />
@@ -196,6 +463,7 @@ export default function ProfileScreen() {
               icon="heart"
               label="Favorites"
               onPress={() => router.push("/(tabs)/favorites")}
+              isFirst={true}
             />
             <MenuItem
               icon="paw"
@@ -213,22 +481,13 @@ export default function ProfileScreen() {
             <MenuItem
               icon="notifications"
               label="Notifications"
-              onPress={() => {
-                Alert.alert(
-                  "Coming Soon",
-                  "Notifications settings will be available soon!"
-                );
-              }}
+              onPress={() => router.push("/(tabs)/notifications")}
+              isFirst={true}
             />
             <MenuItem
               icon="settings"
               label="Settings"
-              onPress={() => {
-                Alert.alert(
-                  "Coming Soon",
-                  "Settings screen will be available soon!"
-                );
-              }}
+              onPress={() => router.push("/(tabs)/settings")}
             />
           </MenuGroup>
 
@@ -242,6 +501,7 @@ export default function ProfileScreen() {
                   "Support screen will be available soon!"
                 );
               }}
+              isFirst={true}
             />
             <MenuItem
               icon="document-text"
@@ -265,72 +525,13 @@ export default function ProfileScreen() {
             />
           </MenuGroup>
 
-          {/* Suggested for you */}
-          <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "900",
-                color: colors.text,
-                marginBottom: 8,
-              }}
-            >
-              Suggested for you
-            </Text>
-
-            {suggLoading ? (
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                {[0, 1].map((i) => (
-                  <View
-                    key={i}
-                    style={{
-                      flex: 1,
-                      borderRadius: 16,
-                      overflow: "hidden",
-                      backgroundColor: "#F3F4F6",
-                    }}
-                  >
-                    <View style={{ height: 110, backgroundColor: "#E5E7EB" }} />
-                    <View style={{ padding: 10, gap: 8 }}>
-                      <View
-                        style={{
-                          width: 100,
-                          height: 12,
-                          backgroundColor: "#E5E7EB",
-                          borderRadius: 6,
-                        }}
-                      />
-                      <View
-                        style={{
-                          width: 80,
-                          height: 10,
-                          backgroundColor: "#E5E7EB",
-                          borderRadius: 6,
-                        }}
-                      />
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <View style={{ flexDirection: "row", gap: 12 }}>
-                {suggested.slice(0, 2).map((p) => (
-                  <MiniPetCard
-                    key={String((p as any).id ?? Math.random())}
-                    pet={p}
-                    onPress={() => router.push(`/pet/${(p as any).id}`)}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
-
           {/* Logout button */}
           <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
-            <TouchableOpacity
+            <Pressable
               onPress={handleLogout}
               accessibilityRole="button"
               accessibilityLabel="Log out"
+              style={{ zIndex: 1000 }}
             >
               <LinearGradient
                 colors={[PF.indigo, PF.violet]}
@@ -343,11 +544,11 @@ export default function ProfileScreen() {
                   Log out
                 </Text>
               </LinearGradient>
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {isLoading && (
-            <View style={{ paddingVertical: 20 }}>
+            <View style={{ paddingVertical: 20, zIndex: 1 }}>
               <LoadingSpinner />
             </View>
           )}
@@ -405,15 +606,21 @@ function MenuItem({
   label,
   onPress,
   trailing,
+  isFirst = false,
 }: {
   icon: any;
   label: string;
   onPress?: () => void;
   trailing?: React.ReactNode;
+  isFirst?: boolean;
 }) {
   const { colors } = useTheme();
   return (
-    <TouchableOpacity onPress={onPress} accessibilityLabel={label}>
+    <TouchableOpacity
+      onPress={onPress}
+      accessibilityLabel={label}
+      accessibilityRole="button"
+    >
       <View
         style={{
           flexDirection: "row",
@@ -422,6 +629,9 @@ function MenuItem({
           paddingHorizontal: 14,
           paddingVertical: 12,
           backgroundColor: colors.surface,
+          ...(isFirst
+            ? {}
+            : { borderTopWidth: 1, borderTopColor: colors.border }),
         }}
       >
         <Ionicons name={icon} size={18} color={colors.text} />
@@ -435,53 +645,6 @@ function MenuItem({
             color={colors.textSecondary}
           />
         )}
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-function MiniPetCard({ pet, onPress }: { pet: Pet; onPress: () => void }) {
-  const { colors } = useTheme();
-  const img =
-    (pet as any)?.photos?.[0]?.url ||
-    "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&q=80";
-
-  return (
-    <TouchableOpacity onPress={onPress} style={{ flex: 1 }}>
-      <View
-        style={{
-          borderRadius: 16,
-          overflow: "hidden",
-          backgroundColor: colors.surface,
-          borderWidth: 1,
-          borderColor: colors.border,
-        }}
-      >
-        <Image
-          source={{ uri: img }}
-          style={{ width: "100%", height: 110 }}
-          resizeMode="cover"
-        />
-        <View style={{ padding: 10 }}>
-          <Text
-            style={{ fontWeight: "900", color: colors.text }}
-            numberOfLines={1}
-          >
-            {(pet as any).name}
-          </Text>
-          <Text
-            style={{ color: colors.textSecondary, fontSize: 12 }}
-            numberOfLines={1}
-          >
-            {[
-              (pet as any).breeds?.primary ?? (pet as any).breed,
-              (pet as any).age,
-              (pet as any).gender,
-            ]
-              .filter(Boolean)
-              .join(" • ")}
-          </Text>
-        </View>
       </View>
     </TouchableOpacity>
   );

@@ -38,10 +38,22 @@ export const validateRequest = (schemas) => async (req, res, next) => {
 
     // Validate request body if schema is provided
     if (schemas.body) {
+      console.log('🔔 Validation middleware - Before validation:', {
+        url: req.url,
+        method: req.method,
+        body: JSON.stringify(req.body, null, 2),
+      });
+
       const { error, value } = schemas.body.validate(req.body, {
         abortEarly: false,
         stripUnknown: { objects: true, arrays: true },
       });
+
+      console.log('🔔 Validation middleware - After validation:', {
+        error: error ? error.details : null,
+        value: JSON.stringify(value, null, 2),
+      });
+
       if (error) throw error;
       req.body = value;
     }

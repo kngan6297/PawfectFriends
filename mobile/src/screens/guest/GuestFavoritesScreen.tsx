@@ -12,7 +12,7 @@ import {
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { metaOf, MiniTag, Chip } from "@/ui";
+import { metaOf, MiniTag } from "@/ui";
 import { useTheme } from "@/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -46,26 +46,12 @@ export default function PublicFavoritesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [suggested, setSuggested] = useState<Pet[]>([]);
   const [suggLoading, setSuggLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const goSearch = (species?: "dog" | "cat" | "other") =>
     router.push({
       pathname: "/(guest-tabs)/search",
       params: { species: species ?? "all" },
     } as any);
-
-  const handleSearch = useCallback(() => {
-    if (searchQuery.trim()) {
-      router.push({
-        pathname: "/(guest-tabs)/search",
-        params: { q: searchQuery.trim() },
-      } as any);
-    }
-  }, [router, searchQuery]);
-
-  const clearSearch = useCallback(() => {
-    setSearchQuery("");
-  }, []);
 
   const fetchFavorites = useCallback(async () => {
     try {
@@ -179,70 +165,6 @@ export default function PublicFavoritesScreen() {
               </View>
             </View>
 
-            {/* Search Bar */}
-            <View style={{ paddingHorizontal: GUTTER, marginTop: 10 }}>
-              <View
-                style={[
-                  styles.searchCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                  shadow,
-                ]}
-              >
-                <Ionicons name="search" size={18} color="#6B7280" />
-                <TextInput
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholder="Search by name, breed, location..."
-                  placeholderTextColor="#9CA3AF"
-                  style={[styles.searchInput, { color: colors.text }]}
-                  returnKeyType="search"
-                  onSubmitEditing={handleSearch}
-                  accessibilityLabel="Search input"
-                />
-                {!!searchQuery && (
-                  <TouchableOpacity
-                    onPress={clearSearch}
-                    accessibilityLabel="Clear search"
-                  >
-                    <Ionicons name="close-circle" size={18} color="#9CA3AF" />
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  onPress={handleSearch}
-                  style={styles.searchGo}
-                  accessibilityLabel="Run search"
-                >
-                  <Text style={styles.searchGoText}>Search</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Chips */}
-            <View style={{ marginTop: 12 }}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: GUTTER, gap: 8 }}
-              >
-                {[
-                  { key: "all", label: "All" },
-                  { key: "dog", label: "Dogs" },
-                  { key: "cat", label: "Cats" },
-                  { key: "other", label: "Other" },
-                ].map((c) => (
-                  <Chip
-                    key={c.key}
-                    label={c.label}
-                    active={c.key === "all"}
-                    onPress={() => goSearch(c.key as any)}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-
             {/* Suggested + CTA */}
             <View style={{ paddingHorizontal: GUTTER, marginTop: 16 }}>
               <Text
@@ -299,7 +221,7 @@ export default function PublicFavoritesScreen() {
                     return (
                       <TouchableOpacity
                         key={String(id)}
-                        onPress={() => router.push(`/(guest-tabs)/pet/${id}`)}
+                        onPress={() => router.push(`/pet/${id}`)}
                         style={{ flex: 1 }}
                       >
                         <View
@@ -394,7 +316,7 @@ export default function PublicFavoritesScreen() {
         renderItem={({ item }) => (
           <PetCardGrid
             pet={item}
-            onPress={() => router.push(`/(guest-tabs)/pet/${petId(item)}`)}
+            onPress={() => router.push(`/pet/${petId(item)}`)}
           />
         )}
         // Header/Text above, remove internal paddingHorizontal,

@@ -55,6 +55,17 @@ import { logAdoptionActivity } from '../../utils/activityLogger.js';
 export const createAdoptionRequest = catchAsync(async (req, res) => {
   const { petId } = req.params;
   const applicationDetails = req.body;
+
+  console.log('🔔 Backend Controller - PetId:', petId);
+  console.log(
+    '🔔 Backend Controller - ApplicationDetails:',
+    JSON.stringify(applicationDetails, null, 2)
+  );
+  console.log(
+    '🔔 Backend Controller - References:',
+    JSON.stringify(applicationDetails.references, null, 2)
+  );
+
   const adoptionRequest = await createAdoptionRequest_service(
     req.user._id,
     petId,
@@ -1312,7 +1323,7 @@ export const getUserAdoptionRequestDetails = catchAsync(async (req, res) => {
     _id: id,
     user: userId,
   })
-    .populate('pet', 'name breed age gender images')
+    .populate('pet', 'name breed age gender photos')
     .populate('shelter', 'name address phone email')
     .populate('user', 'name email phone');
 

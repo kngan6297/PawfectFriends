@@ -56,7 +56,6 @@ export default function PublicAdoptionsScreen() {
   const [suggested, setSuggested] = useState<Pet[]>([]);
   const [suggLoading, setSuggLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchApps = useCallback(async () => {
     try {
@@ -121,19 +120,6 @@ export default function PublicAdoptionsScreen() {
       pathname: "/(guest-tabs)/search",
       params: { species: s ?? "all" },
     } as any);
-
-  const handleSearch = useCallback(() => {
-    if (searchQuery.trim()) {
-      router.push({
-        pathname: "/(guest-tabs)/search",
-        params: { q: searchQuery.trim() },
-      } as any);
-    }
-  }, [router, searchQuery]);
-
-  const clearSearch = useCallback(() => {
-    setSearchQuery("");
-  }, []);
 
   // --- Not logged in UI ---
   if (!isAuthenticated) {
@@ -208,70 +194,6 @@ export default function PublicAdoptionsScreen() {
               </View>
             </View>
 
-            {/* Search Bar */}
-            <View style={{ paddingHorizontal: GUTTER, marginTop: 10 }}>
-              <View
-                style={[
-                  styles.searchCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                  shadow,
-                ]}
-              >
-                <Ionicons name="search" size={18} color="#6B7280" />
-                <TextInput
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholder="Search by name, breed, location..."
-                  placeholderTextColor="#9CA3AF"
-                  style={[styles.searchInput, { color: colors.text }]}
-                  returnKeyType="search"
-                  onSubmitEditing={handleSearch}
-                  accessibilityLabel="Search input"
-                />
-                {!!searchQuery && (
-                  <TouchableOpacity
-                    onPress={clearSearch}
-                    accessibilityLabel="Clear search"
-                  >
-                    <Ionicons name="close-circle" size={18} color="#9CA3AF" />
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  onPress={handleSearch}
-                  style={styles.searchGo}
-                  accessibilityLabel="Run search"
-                >
-                  <Text style={styles.searchGoText}>Search</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Chips */}
-            <View style={{ marginTop: 12 }}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: GUTTER, gap: 8 }}
-              >
-                {[
-                  { key: "all", label: "All" },
-                  { key: "dog", label: "Dogs" },
-                  { key: "cat", label: "Cats" },
-                  { key: "other", label: "Other" },
-                ].map((c) => (
-                  <Chip
-                    key={c.key}
-                    label={c.label}
-                    active={c.key === "all"}
-                    onPress={() => goSearchSpecies(c.key as any)}
-                  />
-                ))}
-              </ScrollView>
-            </View>
-
             {/* Suggested + CTA */}
             <View style={{ paddingHorizontal: GUTTER, marginTop: 16 }}>
               <Text
@@ -328,7 +250,7 @@ export default function PublicAdoptionsScreen() {
                       key={String((p as any).id ?? Math.random())}
                       onPress={() => {
                         const id = petId(p as any);
-                        router.push(`/(guest-tabs)/pet/${id}`);
+                        router.push(`/pet/${id}`);
                       }}
                       style={{ flex: 1 }}
                     >
@@ -423,7 +345,7 @@ export default function PublicAdoptionsScreen() {
             app={item}
             onPress={() => {
               const id = petId(item.pet as any);
-              router.push(`/(guest-tabs)/pet/${id}`);
+              router.push(`/pet/${id}`);
             }}
           />
         )}

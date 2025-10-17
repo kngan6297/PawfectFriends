@@ -18,6 +18,7 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,6 +29,7 @@ import { metaOf, MiniTag, Chip } from "@/ui";
 import { petService } from "@/services/petService";
 import { Pet, Species } from "@/types";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuthStore } from "@/store/authStore";
 import { petId } from "@/utils";
 import { petFilters } from "@/constants";
 
@@ -202,7 +204,32 @@ export default function UserSearchScreen() {
         if (__DEV__) {
           console.log("Final data:", data);
         }
-        setPets((prev) => (replace ? data : [...prev, ...data]));
+
+        // Enrich pets with favorite status
+        try {
+          const favoritesResponse = await petService.getFavorites();
+          const favoriteIds =
+            favoritesResponse.success && favoritesResponse.data
+              ? favoritesResponse.data.map((pet: Pet) => petId(pet))
+              : [];
+
+          const enrichedData = data.map((pet: Pet) => ({
+            ...pet,
+            isFavorite: favoriteIds.includes(petId(pet)),
+          }));
+
+          setPets((prev) =>
+            replace ? enrichedData : [...prev, ...enrichedData]
+          );
+        } catch (favoritesError) {
+          console.warn(
+            "Failed to fetch favorites for enrichment:",
+            favoritesError
+          );
+          // Fallback to original data without favorite status
+          setPets((prev) => (replace ? data : [...prev, ...data]));
+        }
+
         setHasMore(data.length === 10); // Check if we got exactly 10 pets (full page)
         setPage(p);
       } catch (e) {
@@ -557,9 +584,15 @@ function PetCardGrid({
   width: number;
 }) {
   const { colors } = useTheme();
+  const { isAuthenticated } = useAuthStore();
+  const router = useRouter();
+  const [isFavorite, setIsFavorite] = useState(pet.isFavorite || false);
+  const [isToggling, setIsToggling] = useState(false);
+
   const img =
     pet?.photos?.[0]?.url ||
     "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&q=80";
+
   const boxShadow = Platform.select({
     ios: {
       shadowColor: "#000",
@@ -570,6 +603,45 @@ function PetCardGrid({
     android: { elevation: 2 },
     default: {},
   });
+
+  const handleFavoritePress = async (e: any) => {
+    e.stopPropagation(); // Prevent triggering the card press
+
+    if (!isAuthenticated) {
+      Alert.alert(
+        "Login Required",
+        "Please login to save pets to your favorites",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Login", onPress: () => router.push("/(auth)/login") },
+        ]
+      );
+      return;
+    }
+
+    if (isToggling) return; // Prevent multiple rapid clicks
+
+    try {
+      setIsToggling(true);
+      const currentPetId = petId(pet);
+      console.log("Heart button pressed for pet:", currentPetId);
+
+      const result = await petService.toggleFavorite(currentPetId);
+      console.log("Toggle favorite result:", result);
+
+      if (result.success) {
+        setIsFavorite(result.data.isFavorite);
+      } else {
+        console.error("Failed to toggle favorite:", result.message);
+        Alert.alert("Error", result.message || "Failed to update favorites");
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      Alert.alert("Error", "Failed to update favorites");
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   return (
     <TouchableOpacity onPress={onPress} accessibilityLabel={`Open ${pet.name}`}>
@@ -594,6 +666,48 @@ function PetCardGrid({
             style={{ width: "100%", height: "100%" }}
             resizeMode="cover"
           />
+
+          {/* Favorite Button */}
+          <TouchableOpacity
+            onPress={handleFavoritePress}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: isAuthenticated
+                ? "rgba(255,255,255,0.95)"
+                : "rgba(255,255,255,0.7)",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            accessibilityLabel={
+              !isAuthenticated
+                ? "Login to add to favorites"
+                : isFavorite
+                ? "Remove from favorites"
+                : "Add to favorites"
+            }
+          >
+            {isToggling ? (
+              <ActivityIndicator size="small" color="#ef4444" />
+            ) : (
+              <Ionicons
+                name={isFavorite ? "heart" : "heart-outline"}
+                size={14}
+                color={
+                  !isAuthenticated
+                    ? "#9CA3AF"
+                    : isFavorite
+                    ? "#ef4444"
+                    : "#374151"
+                }
+              />
+            )}
+          </TouchableOpacity>
         </View>
         <View style={{ padding: 12 }}>
           <Text

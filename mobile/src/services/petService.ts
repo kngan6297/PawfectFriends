@@ -46,7 +46,7 @@ export const petService = {
     },
 
     async toggleFavorite(petId: string): Promise<ApiResponse<{ isFavorite: boolean }>> {
-        return apiService.post(`${apiEndpoints.users.favorites}/${petId}`);
+        return apiService.patch(`${apiEndpoints.users.favorites}/${petId}/toggle`);
     },
 
     async addViewedPet(petId: string): Promise<ApiResponse<void>> {

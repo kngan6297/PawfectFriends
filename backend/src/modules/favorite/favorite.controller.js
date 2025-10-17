@@ -49,7 +49,7 @@ const favoritePet = catchAsync(async (req, res) => {
     await pet.save();
 
     res.status(200).json({
-      status: 'success',
+      success: true,
       message: 'Pet favorited successfully',
     });
   } catch (error) {
@@ -108,7 +108,7 @@ const unfavoritePet = catchAsync(async (req, res) => {
     await pet.save();
 
     res.status(200).json({
-      status: 'success',
+      success: true,
       message: 'Pet unfavorited successfully',
     });
   } catch (error) {
@@ -155,7 +155,7 @@ const getFavoritePets = catchAsync(async (req, res) => {
     const transformedPets = user.favoritePets.map(transformPet);
 
     res.status(200).json({
-      status: 'success',
+      success: true,
       data: transformedPets,
     });
   } catch (error) {
@@ -184,7 +184,7 @@ const checkFavoriteStatus = catchAsync(async (req, res) => {
     const isFavorited = user.favoritePets.includes(petId);
 
     res.status(200).json({
-      status: 'success',
+      success: true,
       data: { isFavorited },
     });
   } catch (error) {
@@ -243,7 +243,7 @@ const toggleFavorite = catchAsync(async (req, res) => {
     await pet.save();
 
     res.status(200).json({
-      status: 'success',
+      success: true,
       message: isFavorited
         ? 'Pet removed from favorites'
         : 'Pet added to favorites',

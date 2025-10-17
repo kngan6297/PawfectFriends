@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -8,15 +8,19 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
+  Platform,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { usePet } from "@/hooks/usePets";
 import { useTheme } from "@/hooks/useTheme";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
 import { Pet } from "@/types";
+import { pageContainer, scrollContent, GUTTER } from "@/ui/layout";
 
 const { width } = Dimensions.get("window");
 
@@ -27,7 +31,17 @@ export default function GuestPetDetailScreen() {
 
   const { data, isLoading, error, refetch } = usePet(id!);
 
-  const styles = createStyles();
+  const PF = useMemo(() => ({ indigo: "#6366F1", violet: "#7C3AED" }), []);
+  const shadow = Platform.select({
+    ios: {
+      shadowColor: "#000",
+      shadowOpacity: 0.08,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 8 },
+    },
+    android: { elevation: 4 },
+    default: {},
+  });
 
   const pet = data?.data;
 
@@ -61,32 +75,26 @@ export default function GuestPetDetailScreen() {
 
   const handleImageScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffsetX / width);
+    const index = Math.round(contentOffsetX / (width - GUTTER * 2));
     setCurrentImageIndex(index);
   };
 
   const getAgeText = (age: string) => {
-    switch (age) {
-      case "baby":
-        return "Baby";
-      case "young":
-        return "Young";
-      case "adult":
-        return "Adult";
-      case "senior":
-        return "Senior";
-      default:
-        return age;
-    }
+    const ageNum = parseInt(age);
+    if (ageNum === 1) return "1 year old";
+    if (ageNum < 1) return "Less than 1 year old";
+    return `${ageNum} years old`;
   };
 
   const getGenderIcon = (gender: string) => {
-    return gender === "male" ? "male" : gender === "female" ? "female" : "help";
+    return gender?.toLowerCase() === "male" ? "male" : "female";
   };
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         <LoadingSpinner />
       </SafeAreaView>
     );
@@ -94,132 +102,197 @@ export default function GuestPetDetailScreen() {
 
   if (error || !pet) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         <ErrorMessage message="Pet not found" onRetry={refetch} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.push("/(guest-tabs)/home");
+            }
+          }}
+          style={styles.backButton}
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.favoriteButton}
-            onPress={handleFavoritePress}
-          >
-            <Ionicons
-              name="heart-outline"
-              size={24}
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={handleFavoritePress}
+          accessibilityLabel="Add to favorites (requires login)"
+        >
+          <Ionicons
+            name="heart-outline"
+            size={24}
+            color={colors.textSecondary}
+          />
+        </TouchableOpacity>
+      </View>
 
-        {/* Image Carousel */}
-        {pet.photos && pet.photos.length > 0 && (
-          <View style={styles.imageSection}>
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={handleImageScroll}
-            >
-              {pet.photos.map((photo, index) => (
-                <Image
-                  key={index}
-                  source={{ uri: photo.url }}
-                  style={styles.petImage}
-                  resizeMode="cover"
-                />
-              ))}
-            </ScrollView>
+      {error && <ErrorMessage message={error} />}
 
-            {pet.photos.length > 1 && (
-              <View style={styles.imageIndicators}>
-                {pet.photos.map((_, index) => (
-                  <View
+      <ScrollView
+        contentContainerStyle={scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={pageContainer}>
+          {/* Image Carousel */}
+          {pet?.photos && pet.photos.length > 0 && (
+            <View style={[styles.imageSection, shadow]}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={handleImageScroll}
+              >
+                {pet.photos.map((photo, index) => (
+                  <Image
                     key={index}
-                    style={[
-                      styles.indicator,
-                      index === currentImageIndex && styles.activeIndicator,
-                    ]}
+                    source={{ uri: photo.url }}
+                    style={styles.petImage}
+                    resizeMode="cover"
                   />
                 ))}
+              </ScrollView>
+
+              {pet.photos.length > 1 && (
+                <View style={styles.imageIndicators}>
+                  {pet.photos.map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.indicator,
+                        index === currentImageIndex && styles.activeIndicator,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Pet Header Card */}
+          <View
+            style={[
+              styles.petHeaderCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              shadow,
+            ]}
+          >
+            <View style={styles.petHeader}>
+              <Text style={[styles.petName, { color: colors.text }]}>
+                {pet?.name}
+              </Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  {
+                    backgroundColor:
+                      pet?.status === "adoptable" ? "#10B981" : "#6B7280",
+                  },
+                ]}
+              >
+                <Text style={styles.statusText}>{pet?.status}</Text>
               </View>
-            )}
-          </View>
-        )}
+            </View>
 
-        {/* Pet Info */}
-        <View style={styles.content}>
-          <View style={styles.petHeader}>
-            <Text style={styles.petName}>{pet.name}</Text>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>{pet.status}</Text>
+            <View style={styles.basicInfo}>
+              <View style={styles.infoItem}>
+                <Ionicons
+                  name={getGenderIcon(pet?.gender)}
+                  size={20}
+                  color={PF.indigo}
+                />
+                <Text style={[styles.infoText, { color: colors.text }]}>
+                  {pet?.gender}
+                </Text>
+              </View>
+
+              <View style={styles.infoItem}>
+                <Ionicons name="time" size={20} color={PF.indigo} />
+                <Text style={[styles.infoText, { color: colors.text }]}>
+                  {getAgeText(pet?.age)}
+                </Text>
+              </View>
+
+              <View style={styles.infoItem}>
+                <Ionicons name="resize" size={20} color={PF.indigo} />
+                <Text style={[styles.infoText, { color: colors.text }]}>
+                  {pet?.size}
+                </Text>
+              </View>
             </View>
           </View>
 
-          <View style={styles.basicInfo}>
-            <View style={styles.infoItem}>
-              <Ionicons
-                name={getGenderIcon(pet.gender)}
-                size={20}
-                color={colors.textSecondary}
-              />
-              <Text style={styles.infoText}>{pet.gender}</Text>
-            </View>
-
-            <View style={styles.infoItem}>
-              <Ionicons name="time" size={20} color={colors.textSecondary} />
-              <Text style={styles.infoText}>{getAgeText(pet.age)}</Text>
-            </View>
-
-            <View style={styles.infoItem}>
-              <Ionicons name="resize" size={20} color={colors.textSecondary} />
-              <Text style={styles.infoText}>{pet.size}</Text>
-            </View>
+          {/* About Section */}
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              shadow,
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              About
+            </Text>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>
+              {pet?.description}
+            </Text>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>About</Text>
-            <Text style={styles.description}>{pet.description}</Text>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Health & Care</Text>
+          {/* Health & Care Section */}
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              shadow,
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Health & Care
+            </Text>
             <View style={styles.healthInfo}>
               <View style={styles.healthItem}>
                 <Ionicons
                   name={
-                    pet.health.vaccinated ? "checkmark-circle" : "close-circle"
+                    pet?.health.vaccinated ? "checkmark-circle" : "close-circle"
                   }
                   size={20}
-                  color={pet.health.vaccinated ? colors.success : colors.error}
+                  color={pet?.health.vaccinated ? "#10B981" : "#EF4444"}
                 />
-                <Text style={styles.healthText}>Vaccinated</Text>
+                <Text style={[styles.healthText, { color: colors.text }]}>
+                  Vaccinated
+                </Text>
               </View>
 
               <View style={styles.healthItem}>
                 <Ionicons
                   name={
-                    pet.health.neutered ? "checkmark-circle" : "close-circle"
+                    pet?.health.neutered ? "checkmark-circle" : "close-circle"
                   }
                   size={20}
-                  color={pet.health.neutered ? colors.success : colors.error}
+                  color={pet?.health.neutered ? "#10B981" : "#EF4444"}
                 />
-                <Text style={styles.healthText}>Neutered/Spayed</Text>
+                <Text style={[styles.healthText, { color: colors.text }]}>
+                  Neutered/Spayed
+                </Text>
               </View>
 
-              {pet.health.houseTrained !== undefined && (
+              {pet?.health.houseTrained !== undefined && (
                 <View style={styles.healthItem}>
                   <Ionicons
                     name={
@@ -228,20 +301,29 @@ export default function GuestPetDetailScreen() {
                         : "close-circle"
                     }
                     size={20}
-                    color={
-                      pet.health.houseTrained ? colors.success : colors.error
-                    }
+                    color={pet.health.houseTrained ? "#10B981" : "#EF4444"}
                   />
-                  <Text style={styles.healthText}>House Trained</Text>
+                  <Text style={[styles.healthText, { color: colors.text }]}>
+                    House Trained
+                  </Text>
                 </View>
               )}
             </View>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Behavior</Text>
+          {/* Behavior Section */}
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              shadow,
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Behavior
+            </Text>
             <View style={styles.behaviorInfo}>
-              {pet.behavior.goodWithChildren !== undefined && (
+              {pet?.behavior.goodWithChildren !== undefined && (
                 <View style={styles.behaviorItem}>
                   <Ionicons
                     name={
@@ -251,16 +333,16 @@ export default function GuestPetDetailScreen() {
                     }
                     size={20}
                     color={
-                      pet.behavior.goodWithChildren
-                        ? colors.success
-                        : colors.error
+                      pet.behavior.goodWithChildren ? "#10B981" : "#EF4444"
                     }
                   />
-                  <Text style={styles.behaviorText}>Good with Children</Text>
+                  <Text style={[styles.behaviorText, { color: colors.text }]}>
+                    Good with Children
+                  </Text>
                 </View>
               )}
 
-              {pet.behavior.goodWithDogs !== undefined && (
+              {pet?.behavior.goodWithDogs !== undefined && (
                 <View style={styles.behaviorItem}>
                   <Ionicons
                     name={
@@ -269,15 +351,15 @@ export default function GuestPetDetailScreen() {
                         : "close-circle"
                     }
                     size={20}
-                    color={
-                      pet.behavior.goodWithDogs ? colors.success : colors.error
-                    }
+                    color={pet.behavior.goodWithDogs ? "#10B981" : "#EF4444"}
                   />
-                  <Text style={styles.behaviorText}>Good with Dogs</Text>
+                  <Text style={[styles.behaviorText, { color: colors.text }]}>
+                    Good with Dogs
+                  </Text>
                 </View>
               )}
 
-              {pet.behavior.goodWithCats !== undefined && (
+              {pet?.behavior.goodWithCats !== undefined && (
                 <View style={styles.behaviorItem}>
                   <Ionicons
                     name={
@@ -286,279 +368,259 @@ export default function GuestPetDetailScreen() {
                         : "close-circle"
                     }
                     size={20}
-                    color={
-                      pet.behavior.goodWithCats ? colors.success : colors.error
-                    }
+                    color={pet.behavior.goodWithCats ? "#10B981" : "#EF4444"}
                   />
-                  <Text style={styles.behaviorText}>Good with Cats</Text>
+                  <Text style={[styles.behaviorText, { color: colors.text }]}>
+                    Good with Cats
+                  </Text>
                 </View>
               )}
             </View>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Shelter Information</Text>
+          {/* Shelter Information */}
+          <View
+            style={[
+              styles.sectionCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              shadow,
+            ]}
+          >
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Shelter Information
+            </Text>
             <View style={styles.shelterInfo}>
-              <Text style={styles.shelterName}>{pet.shelter.name}</Text>
-              {pet.shelter.location && (
-                <Text style={styles.shelterLocation}>
+              <Text style={[styles.shelterName, { color: colors.text }]}>
+                {pet?.shelter.name}
+              </Text>
+              {pet?.shelter.location && (
+                <Text
+                  style={[
+                    styles.shelterLocation,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   {typeof pet.shelter.location === "string"
                     ? pet.shelter.location
                     : (pet.shelter.location as any)?.formatted ||
                       "Location not available"}
                 </Text>
               )}
-              {pet.shelter.contact?.phone && (
-                <Text style={styles.shelterContact}>
+              {pet?.shelter.contact?.phone && (
+                <Text
+                  style={[
+                    styles.shelterContact,
+                    { color: colors.textSecondary },
+                  ]}
+                >
                   {pet.shelter.contact.phone}
                 </Text>
               )}
             </View>
           </View>
-
-          {/* Login Prompt Banner */}
-          <View style={styles.loginPrompt}>
-            <Ionicons name="heart" size={24} color={colors.primary} />
-            <View style={styles.loginPromptText}>
-              <Text style={styles.loginPromptTitle}>
-                Want to save favorites and adopt?
-              </Text>
-              <Text style={styles.loginPromptSubtitle}>
-                Create an account to save pets and submit adoption requests
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={() => router.push("/(auth)/register")}
-            >
-              <Text style={styles.loginButtonText}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
 
       {/* Bottom Action Bar */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.adoptButton}
+      <View
+        style={[
+          styles.bottomBar,
+          { backgroundColor: colors.surface, borderTopColor: colors.border },
+        ]}
+      >
+        <Pressable
           onPress={handleAdoptPress}
           accessibilityRole="button"
-          accessibilityLabel="Login to adopt this pet"
+          accessibilityLabel={`Adopt ${pet?.name} (requires login)`}
+          style={styles.adoptButtonContainer}
         >
-          <Text style={styles.adoptButtonText}>Login to Adopt</Text>
-        </TouchableOpacity>
+          <LinearGradient
+            colors={[PF.indigo, PF.violet]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.adoptButton}
+          >
+            <Ionicons name="heart" size={20} color="#fff" />
+            <Text style={styles.adoptButtonText}>Login to Adopt</Text>
+          </LinearGradient>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
 }
 
-const createStyles = () =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: "#FFFFFF",
-    },
-    scrollView: {
-      flex: 1,
-    },
-    header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      backgroundColor: "#F8F9FA",
-      borderBottomWidth: 1,
-      borderBottomColor: "#E1E8ED",
-    },
-    backButton: {
-      padding: 8,
-    },
-    favoriteButton: {
-      padding: 8,
-    },
-    imageSection: {
-      height: 300,
-      position: "relative",
-    },
-    petImage: {
-      width: width,
-      height: 300,
-    },
-    imageIndicators: {
-      position: "absolute",
-      bottom: 16,
-      left: 0,
-      right: 0,
-      flexDirection: "row",
-      justifyContent: "center",
-    },
-    indicator: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      marginHorizontal: 4,
-    },
-    activeIndicator: {
-      backgroundColor: "#7C3AED",
-    },
-    content: {
-      paddingHorizontal: 20,
-      paddingVertical: 24,
-    },
-    petHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 16,
-    },
-    petName: {
-      fontSize: 28,
-      fontWeight: "bold",
-      color: "#2C3E50",
-      flex: 1,
-    },
-    statusBadge: {
-      backgroundColor: "#7C3AED",
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 16,
-    },
-    statusText: {
-      color: "#FFFFFF",
-      fontSize: 12,
-      fontWeight: "600",
-      textTransform: "capitalize",
-    },
-    basicInfo: {
-      flexDirection: "row",
-      marginBottom: 24,
-    },
-    infoItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginRight: 24,
-    },
-    infoText: {
-      fontSize: 16,
-      color: "#7F8C8D",
-      marginLeft: 8,
-      textTransform: "capitalize",
-    },
-    section: {
-      marginBottom: 24,
-    },
-    sectionTitle: {
-      fontSize: 20,
-      fontWeight: "600",
-      color: "#2C3E50",
-      marginBottom: 12,
-    },
-    description: {
-      fontSize: 16,
-      color: "#7F8C8D",
-      lineHeight: 24,
-    },
-    healthInfo: {
-      gap: 12,
-    },
-    healthItem: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    healthText: {
-      fontSize: 16,
-      color: "#2C3E50",
-      marginLeft: 12,
-    },
-    behaviorInfo: {
-      gap: 12,
-    },
-    behaviorItem: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    behaviorText: {
-      fontSize: 16,
-      color: "#2C3E50",
-      marginLeft: 12,
-    },
-    shelterInfo: {
-      backgroundColor: "#F8F9FA",
-      padding: 16,
-      borderRadius: 12,
-    },
-    shelterName: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: "#2C3E50",
-      marginBottom: 4,
-    },
-    shelterLocation: {
-      fontSize: 16,
-      color: "#7F8C8D",
-      marginBottom: 4,
-    },
-    shelterContact: {
-      fontSize: 16,
-      color: "#7F8C8D",
-    },
-    loginPrompt: {
-      backgroundColor: "#F8F9FA",
-      padding: 16,
-      borderRadius: 12,
-      flexDirection: "row",
-      alignItems: "center",
-      marginTop: 16,
-      borderWidth: 1,
-      borderColor: "#E1E8ED",
-    },
-    loginPromptText: {
-      flex: 1,
-      marginLeft: 12,
-    },
-    loginPromptTitle: {
-      fontSize: 16,
-      fontWeight: "600",
-      color: "#2C3E50",
-      marginBottom: 4,
-    },
-    loginPromptSubtitle: {
-      fontSize: 14,
-      color: "#7F8C8D",
-    },
-    loginButton: {
-      backgroundColor: "#7C3AED",
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 8,
-    },
-    loginButtonText: {
-      color: "#FFFFFF",
-      fontSize: 14,
-      fontWeight: "600",
-    },
-    bottomBar: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-      backgroundColor: "#F8F9FA",
-      borderTopWidth: 1,
-      borderTopColor: "#E1E8ED",
-    },
-    adoptButton: {
-      backgroundColor: "#7F8C8D",
-      paddingHorizontal: 32,
-      paddingVertical: 12,
-      borderRadius: 8,
-      flex: 1,
-    },
-    adoptButtonText: {
-      color: "#FFFFFF",
-      fontSize: 16,
-      fontWeight: "600",
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: GUTTER,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    padding: 4,
+  },
+  favoriteButton: {
+    padding: 4,
+  },
+  imageSection: {
+    height: 300,
+    position: "relative",
+    borderRadius: 16,
+    overflow: "hidden",
+    marginHorizontal: GUTTER,
+    marginTop: 16,
+  },
+  petImage: {
+    width: width - GUTTER * 2,
+    height: 300,
+  },
+  imageIndicators: {
+    position: "absolute",
+    bottom: 16,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  indicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    marginHorizontal: 4,
+  },
+  activeIndicator: {
+    backgroundColor: "#6366F1",
+  },
+  petHeaderCard: {
+    marginHorizontal: GUTTER,
+    marginTop: 16,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  petHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  petName: {
+    fontSize: 28,
+    fontWeight: "900",
+    flex: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  statusText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "capitalize",
+  },
+  basicInfo: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  infoText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  sectionCard: {
+    marginHorizontal: GUTTER,
+    marginTop: 16,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+    marginBottom: 12,
+  },
+  description: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  healthInfo: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  healthItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    minWidth: "45%",
+    gap: 8,
+  },
+  healthText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  behaviorInfo: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+  },
+  behaviorItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    minWidth: "45%",
+    gap: 8,
+  },
+  behaviorText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  shelterInfo: {
+    gap: 8,
+  },
+  shelterName: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  shelterLocation: {
+    fontSize: 16,
+  },
+  shelterContact: {
+    fontSize: 16,
+  },
+  bottomBar: {
+    flexDirection: "row",
+    paddingHorizontal: GUTTER,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+  },
+  adoptButtonContainer: {
+    flex: 1,
+  },
+  adoptButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  adoptButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+});

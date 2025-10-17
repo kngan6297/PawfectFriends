@@ -62,6 +62,8 @@ export default function AuthenticatedTabsLayout() {
       />
 
       <Tabs.Screen name="pet" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );
 }

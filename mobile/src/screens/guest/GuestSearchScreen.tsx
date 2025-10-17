@@ -59,7 +59,7 @@ export default function PublicSearchScreen() {
   });
 
   // state
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState((params.q as string) || "");
   const [species, setSpecies] = useState<Species>(
     (params.species as Species) || "all"
   );
@@ -481,7 +481,7 @@ export default function PublicSearchScreen() {
           <PetCardGrid
             pet={item}
             width={CARD_W}
-            onPress={() => router.push(`/(guest-tabs)/pet/${petId(item)}`)}
+            onPress={() => router.push(`/pet/${petId(item)}`)}
           />
         )}
         numColumns={COL}

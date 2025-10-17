@@ -17,6 +17,8 @@ import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "@/hooks/useTheme";
 import { validation, errorMessages } from "@/constants";
 
+const PF = { indigo: "#6366F1", violet: "#7C3AED", rose: "#F43F5E" };
+
 export default function RegisterScreen() {
   const { colors } = useTheme();
   const { register, isLoading, error, clearError } = useAuthStore();
@@ -31,8 +33,6 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  const PF = { indigo: "#6366F1", violet: "#7C3AED", rose: "#F43F5E" };
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
@@ -70,9 +70,29 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     if (!validateForm()) return;
     clearError();
-    const res = await register(formData);
-    if (res.success) router.replace("/(guest-tabs)/home");
-    else if (res.fieldErrors) setFieldErrors(res.fieldErrors);
+    // Add role field as required by backend validation
+    const registrationData = {
+      ...formData,
+      role: "user", // Default role for mobile app users
+    };
+    const res = await register(registrationData);
+    console.log("Registration response:", res); // Debug log
+    if (res.success) {
+      // Redirect to check email screen with the email address
+      router.replace(
+        `/(auth)/check-email?email=${encodeURIComponent(formData.email)}`
+      );
+    } else {
+      // Handle both field errors and general errors
+      if (res.fieldErrors) {
+        console.log("Field errors:", res.fieldErrors); // Debug log
+        setFieldErrors(res.fieldErrors);
+      }
+      if (res.message && !res.fieldErrors) {
+        // If there's a general error message but no field errors, show it
+        setFieldErrors({ general: res.message });
+      }
+    }
   };
 
   return (
@@ -124,10 +144,10 @@ export default function RegisterScreen() {
               icon="person-outline"
               placeholder="Enter your full name"
               value={formData.name}
-              onChange={(t) => {
+              onChange={(t: string) => {
                 setFormData((p) => ({ ...p, name: t }));
                 if (fieldErrors.name)
-                  setFieldErrors((p) => ({ ...p, name: "" }));
+                  setFieldErrors((p) => ({ ...p, name: "", general: "" }));
               }}
               error={fieldErrors.name}
               colors={colors}
@@ -139,10 +159,10 @@ export default function RegisterScreen() {
               icon="mail-outline"
               placeholder="Enter your email"
               value={formData.email}
-              onChange={(t) => {
+              onChange={(t: string) => {
                 setFormData((p) => ({ ...p, email: t }));
                 if (fieldErrors.email)
-                  setFieldErrors((p) => ({ ...p, email: "" }));
+                  setFieldErrors((p) => ({ ...p, email: "", general: "" }));
               }}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -156,10 +176,10 @@ export default function RegisterScreen() {
               icon="call-outline"
               placeholder="Enter your phone number"
               value={formData.phone}
-              onChange={(t) => {
+              onChange={(t: string) => {
                 setFormData((p) => ({ ...p, phone: t }));
                 if (fieldErrors.phone)
-                  setFieldErrors((p) => ({ ...p, phone: "" }));
+                  setFieldErrors((p) => ({ ...p, phone: "", general: "" }));
               }}
               keyboardType="phone-pad"
               error={fieldErrors.phone}
@@ -172,10 +192,10 @@ export default function RegisterScreen() {
               icon="lock-closed-outline"
               placeholder="Create a password"
               value={formData.password}
-              onChange={(t) => {
+              onChange={(t: string) => {
                 setFormData((p) => ({ ...p, password: t }));
                 if (fieldErrors.password)
-                  setFieldErrors((p) => ({ ...p, password: "" }));
+                  setFieldErrors((p) => ({ ...p, password: "", general: "" }));
               }}
               secureTextEntry={!showPassword}
               trailingIcon={showPassword ? "eye-off" : "eye"}
@@ -191,10 +211,14 @@ export default function RegisterScreen() {
               icon="shield-checkmark-outline"
               placeholder="Confirm your password"
               value={formData.confirmPassword}
-              onChange={(t) => {
+              onChange={(t: string) => {
                 setFormData((p) => ({ ...p, confirmPassword: t }));
                 if (fieldErrors.confirmPassword)
-                  setFieldErrors((p) => ({ ...p, confirmPassword: "" }));
+                  setFieldErrors((p) => ({
+                    ...p,
+                    confirmPassword: "",
+                    general: "",
+                  }));
               }}
               secureTextEntry={!showConfirmPassword}
               trailingIcon={showConfirmPassword ? "eye-off" : "eye"}
@@ -205,7 +229,7 @@ export default function RegisterScreen() {
             />
 
             {/* Global error */}
-            {!!error && (
+            {(!!error || !!fieldErrors.general) && (
               <View
                 style={[
                   styles.inlineAlert,
@@ -217,7 +241,7 @@ export default function RegisterScreen() {
               >
                 <Ionicons name="alert-circle" size={18} color={PF.rose} />
                 <Text style={{ color: PF.rose, fontWeight: "700" }}>
-                  {error}
+                  {error || fieldErrors.general}
                 </Text>
               </View>
             )}

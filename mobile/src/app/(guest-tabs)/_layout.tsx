@@ -62,6 +62,7 @@ export default function GuestTabsLayout() {
       />
 
       <Tabs.Screen name="login" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );
 }

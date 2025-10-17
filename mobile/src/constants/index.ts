@@ -147,7 +147,7 @@ export const adoptionStatusBadges = {
 // Validation constants
 export const validation = {
     email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    phone: /^[\+]?[1-9][\d]{0,15}$/,
+    phone: /^[\d\s\-\+\(\)]+$/,
     passwordMinLength: 8,
     nameMinLength: 2,
     nameMaxLength: 50,
@@ -174,7 +174,7 @@ export const apiEndpoints = {
     },
     users: {
         profile: '/api/users/profile',
-        favorites: '/api/users/favorite-pets',
+        favorites: '/api/favorites',
         viewedPets: '/api/users/viewed-pets',
         preferences: '/api/users/preferences',
         avatar: '/api/users/avatar',
@@ -190,6 +190,17 @@ export const apiEndpoints = {
     shelters: {
         list: '/api/shelters',
         byId: (id: string) => `/api/shelters/${id}`,
+    },
+    notifications: {
+        list: '/api/notifications',
+        unreadCount: '/api/notifications/unread-count',
+        markAsRead: (id: string) => `/api/notifications/${id}/read`,
+        markAllRead: '/api/notifications/mark-all-read',
+        delete: (id: string) => `/api/notifications/${id}`,
+        archive: (id: string) => `/api/notifications/${id}/archive`,
+        settings: '/api/notifications/settings',
+        test: '/api/notifications/test',
+        testRealtime: '/api/notifications/test-realtime',
     },
 };
 

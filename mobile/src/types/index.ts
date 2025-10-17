@@ -154,7 +154,7 @@ export interface AdoptionApplicationDetails {
     experience?: string;
     reasonForAdopting: string;
     plannedCareRoutine: string;
-    veterinarianInfo: {
+    veterinarianInfo?: {
         name: string;
         contact: string;
         clinic: string;

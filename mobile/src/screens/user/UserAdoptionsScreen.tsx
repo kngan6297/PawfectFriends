@@ -268,8 +268,7 @@ export default function UserAdoptionsScreen() {
           <AppCard
             app={item}
             onPress={() => {
-              const id = petId(item.pet as any);
-              router.push(`/(tabs)/pet/${id}`);
+              router.push(`/adoption/${item.id}`);
             }}
           />
         )}

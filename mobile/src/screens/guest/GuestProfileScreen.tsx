@@ -188,9 +188,7 @@ export default function PublicProfileScreen() {
                 <MenuItem
                   icon="notifications"
                   label="Notifications"
-                  onPress={() =>
-                    router.push("/(guest-tabs)/profile/notifications")
-                  }
+                  onPress={() => router.push("/(guest-tabs)/notifications")}
                 />
               </MenuGroup>
 
@@ -324,9 +322,7 @@ export default function PublicProfileScreen() {
                       <MiniPetCard
                         key={String((p as any).id ?? Math.random())}
                         pet={p}
-                        onPress={() =>
-                          router.push(`/(guest-tabs)/pet/${petId(p)}`)
-                        }
+                        onPress={() => router.push(`/pet/${petId(p)}`)}
                       />
                     ))}
                   </View>

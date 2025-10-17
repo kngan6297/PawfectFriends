@@ -28,7 +28,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { metaOf, MiniTag, Chip } from "@/ui";
+import { metaOf, MiniTag } from "@/ui";
 import { petService } from "@/services/petService";
 import { Pet } from "@/types";
 import { useAuthStore } from "@/store/authStore";
@@ -46,7 +46,6 @@ if (
  * Sections:
  *  - TopBar (logo + auth)
  *  - Hero (headline + search pill overlay)
- *  - CategoryChips (species quick filters)
  *  - FeaturedCarousel (snap)
  *  - TrendingGrid (2‑column masonry-like)
  *  - Tips / Info card
@@ -84,10 +83,6 @@ export default function PublicHomeScreen() {
   });
 
   // state
-  const [query, setQuery] = useState("");
-  const [species, setSpecies] = useState<"all" | "dog" | "cat" | "other">(
-    "all"
-  );
   const [featured, setFeatured] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -121,17 +116,6 @@ export default function PublicHomeScreen() {
     setRefreshing(false);
   }, [fetchData]);
 
-  // actions
-  const onSearch = useCallback(() => {
-    router.push({
-      pathname: "/(guest-tabs)/search",
-      params: { q: query || undefined, species },
-    } as any);
-  }, [router, query, species]);
-
-  const clearSearch = useCallback(() => {
-    setQuery("");
-  }, []);
   const goLogin = () => router.push("/(auth)/login");
   const goRegister = () => router.push("/(auth)/register");
 
@@ -140,11 +124,6 @@ export default function PublicHomeScreen() {
   const heroScale = scrollY.interpolate({
     inputRange: [0, 120],
     outputRange: [1, 0.96],
-    extrapolate: "clamp",
-  });
-  const searchTranslateY = scrollY.interpolate({
-    inputRange: [0, 120],
-    outputRange: [0, -8],
     extrapolate: "clamp",
   });
 
@@ -212,73 +191,6 @@ export default function PublicHomeScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* Search Pill (overlay look) */}
-      <Animated.View
-        style={[
-          styles.searchWrap,
-          { transform: [{ translateY: searchTranslateY }] },
-        ]}
-      >
-        <View
-          style={[
-            styles.searchCard,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-            shadow,
-          ]}
-        >
-          <Ionicons name="search" size={18} color="#6B7280" />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search by name, breed, location..."
-            placeholderTextColor="#9CA3AF"
-            style={styles.searchInput}
-            returnKeyType="search"
-            onSubmitEditing={onSearch}
-            accessibilityLabel="Search input"
-          />
-          {!!query && (
-            <TouchableOpacity
-              onPress={clearSearch}
-              accessibilityLabel="Clear search"
-            >
-              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            onPress={onSearch}
-            accessibilityLabel="Run search"
-            style={styles.searchGo}
-          >
-            <Text style={styles.searchGoText}>Search</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-
-      {/* Category Chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-        style={{ marginTop: 12 }}
-      >
-        {(
-          [
-            { key: "all", label: "All" },
-            { key: "dog", label: "Dogs" },
-            { key: "cat", label: "Cats" },
-            { key: "other", label: "Other" },
-          ] as const
-        ).map((c) => (
-          <Chip
-            key={c.key}
-            label={c.label}
-            active={species === c.key}
-            onPress={() => setSpecies(c.key)}
-          />
-        ))}
-      </ScrollView>
-
       {/* Featured */}
       <SectionHeader
         title="Featured"
@@ -300,7 +212,7 @@ export default function PublicHomeScreen() {
           renderItem={({ item }) => (
             <PetCardLarge
               pet={item}
-              onPress={() => router.push(`/(guest-tabs)/pet/${petId(item)}`)}
+              onPress={() => router.push(`/pet/${petId(item)}`)}
             />
           )}
           horizontal

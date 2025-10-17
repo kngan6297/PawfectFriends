@@ -22,7 +22,7 @@ export default function Chip({
   const Component = onPress ? TouchableOpacity : View;
 
   return (
-    <View
+    <Component
       style={[
         styles.container,
         {
@@ -35,6 +35,7 @@ export default function Chip({
           marginHorizontal: variant === "tag" ? 0 : 4,
         },
       ]}
+      onPress={onPress}
       accessibilityRole={onPress ? "button" : undefined}
       accessibilityLabel={onPress ? `${label} filter` : label}
     >
@@ -49,7 +50,7 @@ export default function Chip({
       >
         {label}
       </Text>
-    </View>
+    </Component>
   );
 }
 

@@ -71,12 +71,13 @@ export const applicationDetailsSchema = Joi.object({
       Joi.object({
         name: Joi.string().required(),
         relationship: Joi.string().required(),
-        phone: Joi.string().optional(),
-        email: Joi.string().optional(),
+        phone: Joi.string().required(),
+        email: Joi.string().allow('').optional(),
         yearsKnown: Joi.number().optional(),
       })
     )
-    .optional(),
+    .min(1)
+    .required(),
 });
 
 // Validation schema for required fields in information requests

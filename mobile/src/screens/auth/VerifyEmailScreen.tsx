@@ -77,7 +77,7 @@ export default function VerifyEmailScreen() {
         </View>
         <Text style={styles.title}>Verify your email</Text>
         <Text style={styles.subtitle}>
-          We\'re confirming your address to keep your account secure.
+          We're confirming your address to keep your account secure.
         </Text>
       </LinearGradient>
 

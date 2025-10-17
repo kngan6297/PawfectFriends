@@ -55,9 +55,23 @@ class ApiService {
         }
     }
 
-    async post<T = any>(url: string, data?: any): Promise<ApiResponse<T>> {
+    async post<T = any>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
         try {
-            const response = await this.api.post(url, data);
+            console.log("🔔 API Service POST - URL:", url);
+            console.log("🔔 API Service POST - Data:", JSON.stringify(data, null, 2));
+
+            // If data is FormData, don't set Content-Type header to let browser set it with boundary
+            if (data instanceof FormData) {
+                const response = await this.api.post(url, data, {
+                    ...config,
+                    headers: {
+                        ...config?.headers,
+                        'Content-Type': undefined, // Remove Content-Type to let browser set it
+                    },
+                });
+                return response.data;
+            }
+            const response = await this.api.post(url, data, config);
             return response.data;
         } catch (error: any) {
             return this.handleError(error);
@@ -94,10 +108,24 @@ class ApiService {
     private handleError(error: any): ApiResponse {
         if (error.response) {
             // Server responded with error status
+            const responseData = error.response.data;
+
+            // Extract field errors if they exist (for validation errors)
+            let fieldErrors = null;
+            if (responseData?.errors && Array.isArray(responseData.errors)) {
+                fieldErrors = {};
+                responseData.errors.forEach((err: any) => {
+                    if (err.path && err.message) {
+                        fieldErrors[err.path] = err.message;
+                    }
+                });
+            }
+
             return {
                 success: false,
-                message: error.response.data?.message || errorMessages.server,
-                error: error.response.data,
+                message: responseData?.message || errorMessages.server,
+                error: responseData,
+                fieldErrors: fieldErrors || undefined, // Add field errors to response
             };
         } else if (error.request) {
             // Network error
