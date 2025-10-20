@@ -5,10 +5,10 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.decomposition import PCA
+# Removed unused PCA import
 import joblib
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any, Tuple
 import logging
 
@@ -42,6 +42,7 @@ class PetMatchingService:
         self.interaction_history = []
         self.user_profiles = {}
         self.model_file = 'recommendation_model.joblib'
+        self.artifacts_file = 'recommendation_artifacts.joblib'
         
         # NEW: Advanced similarity components
         self.sentence_model = None
@@ -61,6 +62,11 @@ class PetMatchingService:
             except Exception as e:
                 logger.warning(f"Could not initialize sentence transformer: {e}")
         
+        # Fixed dimension to reserve for text embeddings to ensure stable vector sizes
+        self._embedding_dims = 50
+        # Small epsilon to avoid division by zero during normalization
+        self._eps = 1e-8
+
         # NEW: Feature importance learning
         self.feature_importance = {
             'species': 1.0,
@@ -76,44 +82,139 @@ class PetMatchingService:
             'time_available': 1.0
         }
         self.feature_learning_rate = 0.01
+        # Track whether the model has been fitted
+        self._model_fitted = False
         self.load_or_initialize_model()
+
+    def _as_list(self, value):
+        """Ensure a scalar or None is converted to a list; lists pass through."""
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        return [value]
+
+    def _first_scalar(self, v, default=''):
+        """Return the first element if v is a list/tuple; return v or default if None.
+
+        This normalizes frontend fields that may arrive as single-element arrays
+        into a plain scalar, preventing accidental dtype=object arrays or None
+        values flowing into encoders or string methods.
+        """
+        if isinstance(v, (list, tuple)):
+            return v[0] if v else default
+        return v if v is not None else default
+
+    def _normalize_preferences(self, preferences: Dict) -> Dict:
+        """Normalize preference fields to consistent array-based keys.
+
+        Ensures the presence of array forms: preferredSpecies, preferredSizes,
+        preferredAges, preferredBreeds. Accepts singular fallbacks like
+        preferredSize/preferredAge.
+        """
+        if not preferences:
+            return {}
+
+        normalized = dict(preferences)
+
+        # Species (already expected as list in most places)
+        normalized['preferredSpecies'] = self._as_list(normalized.get('preferredSpecies'))
+
+        # Sizes: prefer preferredSizes (array), fallback to preferredSize (string)
+        sizes_vals = normalized.get('preferredSizes')
+        if not sizes_vals:
+            sizes_vals = normalized.get('preferredSize')
+        normalized['preferredSizes'] = self._as_list(sizes_vals)
+
+        # Ages: prefer preferredAges (array), fallback to preferredAge (string)
+        ages_vals = normalized.get('preferredAges')
+        if not ages_vals:
+            ages_vals = normalized.get('preferredAge')
+        normalized['preferredAges'] = self._as_list(ages_vals)
+
+        # Breeds
+        normalized['preferredBreeds'] = self._as_list(normalized.get('preferredBreeds'))
+
+        return normalized
 
     def load_or_initialize_model(self):
         """Load existing model or initialize a new one"""
         try:
+            # Prefer loading full artifacts bundle if available
+            if os.path.exists(self.artifacts_file):
+                artifacts = joblib.load(self.artifacts_file)
+                self.recommendation_model = artifacts.get('model', RandomForestRegressor(n_estimators=100, random_state=42))
+                self.tfidf_vectorizer = artifacts.get('tfidf_vectorizer', self.tfidf_vectorizer)
+                self.scaler = artifacts.get('scaler', self.scaler)
+                self.label_encoders = artifacts.get('label_encoders', self.label_encoders)
+                self._model_fitted = artifacts.get('_model_fitted', True)
+                logger.info("Loaded recommendation artifacts (model + vectorizer/scaler/encoders)")
+                return
+
             if os.path.exists(self.model_file):
                 self.recommendation_model = joblib.load(self.model_file)
                 logger.info("Loaded existing recommendation model")
+                # A loaded model is assumed to be fitted
+                self._model_fitted = True
             else:
                 self.recommendation_model = RandomForestRegressor(n_estimators=100, random_state=42)
                 logger.info("Initialized new recommendation model")
+                self._model_fitted = False
         except Exception as e:
             logger.error(f"Error loading model: {e}")
             self.recommendation_model = RandomForestRegressor(n_estimators=100, random_state=42)
+            self._model_fitted = False
 
     def save_model(self):
         """Save the trained model"""
         try:
-            joblib.dump(self.recommendation_model, self.model_file)
-            logger.info("Model saved successfully")
+            # Save full artifacts bundle for consistency across restarts
+            artifacts = {
+                'model': self.recommendation_model,
+                'tfidf_vectorizer': self.tfidf_vectorizer,
+                'scaler': self.scaler,
+                'label_encoders': self.label_encoders,
+                '_model_fitted': True,
+            }
+            joblib.dump(artifacts, self.artifacts_file)
+            # Also save legacy single-model file for backward compatibility
+            try:
+                joblib.dump(self.recommendation_model, self.model_file)
+            except Exception:
+                pass
+            logger.info("Saved recommendation artifacts (model + vectorizer/scaler/encoders)")
         except Exception as e:
             logger.error(f"Error saving model: {e}")
 
-    def _create_feature_matrix(self, pets: pd.DataFrame, preferences: Dict) -> np.ndarray:
-        """Create feature matrix for ML model"""
-        # Combine text features for TF-IDF
-        text_features = []
-        for _, pet in pets.iterrows():
-            text = f"{pet.get('description', '')} {pet.get('temperament', '')} {pet.get('health_status', '')} {pet.get('behavior_notes', '')}"
-            text_features.append(text)
-        
-        # Apply TF-IDF
-        tfidf_features = self.tfidf_vectorizer.fit_transform(text_features).toarray()
-        
-        # Combine with numerical features
-        numerical_features = pets[['age_numeric', 'size_numeric', 'species_numeric', 'has_photos', 'photo_count', 'description_length', 'days_listed', 'view_count', 'favorite_count', 'chat_count', 'health_score', 'behavior_score']].values
-        
-        return np.hstack([tfidf_features, numerical_features])
+    def _ensure_tfidf_fitted(self, corpus: List[str]):
+        """Ensure the TF-IDF vectorizer is fitted once; if not, fit on provided corpus."""
+        try:
+            # A fitted TfidfVectorizer has a vocabulary_
+            if getattr(self.tfidf_vectorizer, 'vocabulary_', None):
+                return
+            # Fit on corpus and persist artifacts
+            self.tfidf_vectorizer.fit(corpus or [])
+            # Save artifacts so subsequent runs reuse the same vocabulary
+            self.save_model()
+            logger.info("TF-IDF vectorizer fitted on initial corpus and persisted")
+        except Exception as e:
+            logger.warning(f"Failed to fit TF-IDF vectorizer: {e}")
+
+    def _ensure_scaler_fitted(self, X: np.ndarray):
+        """Ensure the StandardScaler is fitted; if not, fit on provided matrix."""
+        try:
+            if getattr(self.scaler, 'mean_', None) is not None:
+                return
+            if X is None or X.size == 0:
+                return
+            self.scaler.fit(X)
+            # Persist updated scaler
+            self.save_model()
+            logger.info("StandardScaler fitted on training features and persisted")
+        except Exception as e:
+            logger.warning(f"Failed to fit StandardScaler: {e}")
+
+    # Removed unused _create_feature_matrix to reduce dead code and surface area
 
     def _extract_pet_features(self, pet: Dict) -> Dict:
         """Extract numerical features from pet data"""
@@ -139,7 +240,10 @@ class PetMatchingService:
         if pet.get('created_at'):
             try:
                 created_date = datetime.fromisoformat(pet['created_at'].replace('Z', '+00:00'))
-                days_listed = (datetime.now() - created_date).days
+                if created_date.tzinfo is None:
+                    created_date = created_date.replace(tzinfo=timezone.utc)
+                now_utc = datetime.now(timezone.utc)
+                days_listed = (now_utc - created_date.astimezone(timezone.utc)).days
                 features['days_listed'] = days_listed
             except:
                 features['days_listed'] = 0
@@ -159,12 +263,15 @@ class PetMatchingService:
 
     def _age_to_numeric(self, age: str) -> int:
         """Convert age string to numeric value"""
+        age = (age or '').lower()
+        if age in ('kitten', 'puppy', 'baby'):
+            age = 'young'
         age_mapping = {
             'young': 1,
             'adult': 2,
             'senior': 3
         }
-        return age_mapping.get(age.lower(), 2)
+        return age_mapping.get(age, 2)
 
     def _size_to_numeric(self, size: str) -> int:
         """Convert size string to numeric value"""
@@ -181,9 +288,11 @@ class PetMatchingService:
             'dog': 1,
             'cat': 2,
             'bird': 3,
-            'other': 4
+            'reptile': 4,
+            'exotic': 5,
+            'other': 6
         }
-        return species_mapping.get(species.lower(), 1)
+        return species_mapping.get(species.lower(), species_mapping['other'])
 
     def _calculate_health_score(self, pet: Dict) -> float:
         """Calculate health score based on health records"""
@@ -278,7 +387,7 @@ class PetMatchingService:
             'interaction_type': interaction_type,
             'pet_data': pet_data,
             'user_data': user_data,
-            'timestamp': timestamp or datetime.now()
+            'timestamp': timestamp or datetime.now(timezone.utc)
         }
         
         self.interaction_history.append(interaction)
@@ -302,7 +411,7 @@ class PetMatchingService:
             'pet_attributes': pet_attributes or {},
             'recommendation_score': recommendation_score,
             'session_id': session_id,
-            'timestamp': timestamp or datetime.now()
+            'timestamp': timestamp or datetime.now(timezone.utc)
         }
         
         # Store feedback for learning
@@ -493,8 +602,8 @@ class PetMatchingService:
                         'id': 'sample_user_1',
                         'preferences': {
                             'preferredSpecies': ['dog'],
-                            'preferredSize': 'medium',
-                            'preferredAge': 'adult',
+                            'preferredSizes': ['medium'],
+                            'preferredAges': ['adult'],
                             'experience': 'first-time',
                             'livingSpace': 'apartment',
                             'hasChildren': 'no',
@@ -525,8 +634,8 @@ class PetMatchingService:
                         'id': 'sample_user_2',
                         'preferences': {
                             'preferredSpecies': ['cat'],
-                            'preferredSize': 'small',
-                            'preferredAge': 'kitten',
+                            'preferredSizes': ['small'],
+                            'preferredAges': ['kitten'],
                             'experience': 'experienced',
                             'livingSpace': 'house',
                             'hasChildren': 'yes',
@@ -560,9 +669,9 @@ class PetMatchingService:
                     'user_data': {
                         'id': f'sample_user_{i}',
                         'preferences': {
-                            'preferredSpecies': ['dog', 'cat'][i % 2],
-                            'preferredSize': ['small', 'medium', 'large'][i % 3],
-                            'preferredAge': ['kitten', 'adult', 'senior'][i % 3],
+                            'preferredSpecies': [["dog", "cat"][i % 2]],
+                            'preferredSizes': [["small", "medium", "large"][i % 3]],
+                            'preferredAges': [["kitten", "adult", "senior"][i % 3]],
                             'experience': ['first-time', 'some-experience', 'experienced'][i % 3],
                             'livingSpace': ['apartment', 'house'][i % 2],
                             'hasChildren': ['yes', 'no'][i % 2],
@@ -609,11 +718,16 @@ class PetMatchingService:
             # Prepare training data
             X = []
             y = []
+            # Build TF-IDF corpus from pet descriptions observed in training interactions
+            tfidf_corpus: List[str] = []
             
             for interaction in interactions:
                 user_data = interaction['user_data']
                 pet_data = interaction['pet_data']
                 
+                # Accumulate text for initial TF-IDF fitting (one-time)
+                tfidf_corpus.append(f"{pet_data.get('description', '')} {pet_data.get('temperament', '')} {pet_data.get('health_status', '')} {pet_data.get('behavior_notes', '')}")
+
                 # Extract features
                 user_features = self._extract_user_features(user_data, user_data.get('preferences', {}))
                 pet_features = self._extract_pet_features(pet_data)
@@ -632,12 +746,23 @@ class PetMatchingService:
                 }
                 y.append(interaction_weights.get(interaction['interaction_type'], 0.1))
             
+            # Fit TF-IDF once if not already fitted
+            self._ensure_tfidf_fitted(tfidf_corpus)
+
             # Train model
             X = np.array(X)
             y = np.array(y)
+            # Fit scaler (once) and transform features for stable model training
+            self._ensure_scaler_fitted(X)
+            try:
+                X = self.scaler.transform(X)
+            except Exception:
+                pass
             
             self.recommendation_model.fit(X, y)
             self.save_model()
+            # Mark model as fitted after successful training
+            self._model_fitted = True
             
             logger.info(f"Model trained successfully with {len(interactions)} interactions")
             
@@ -648,7 +773,7 @@ class PetMatchingService:
         """Predict match score using trained ML model or fallback scoring"""
         try:
             # Check if model is trained
-            if not hasattr(self.recommendation_model, 'feature_importances_'):
+            if not getattr(self, '_model_fitted', False):
                 # Use fallback scoring when model is not trained
                 return self._fallback_match_score(user_data, pet_data)
             
@@ -659,6 +784,12 @@ class PetMatchingService:
             # Combine features
             combined_features = list(user_features.values()) + list(pet_features.values())
             X = np.array([combined_features])
+            # Apply scaler if available
+            try:
+                if getattr(self.scaler, 'mean_', None) is not None:
+                    X = self.scaler.transform(X)
+            except Exception:
+                pass
             
             # Predict
             prediction = self.recommendation_model.predict(X)[0]
@@ -666,6 +797,8 @@ class PetMatchingService:
             
         except Exception as e:
             logger.error(f"Error predicting match score: {e}")
+            # If prediction fails, mark model as not fitted to avoid repeated failures
+            self._model_fitted = False
             return self._fallback_match_score(user_data, pet_data)
     
     def _fallback_match_score(self, user_data: Dict, pet_data: Dict) -> float:
@@ -769,25 +902,41 @@ class PetMatchingService:
         """Calculate rule-based score"""
         score = 0.0
         
-        # Species preference
-        if preferences.get('preferredSpecies') and pet.get('species') in preferences['preferredSpecies']:
+        # Helper function to safely get array values
+        def get_array_value(value):
+            if not value:
+                return []
+            if isinstance(value, list):
+                return value
+            return [value]
+        
+        # Species preference - handle both array and string formats
+        preferred_species = get_array_value(preferences.get('preferredSpecies'))
+        if preferred_species and pet.get('species') in preferred_species:
             score += 0.3
         
-        # Size preference
-        if preferences.get('livingSpace') == 'apartment' and pet.get('size') == 'small':
+        # Size preference - handle both array and string formats
+        living_space = get_array_value(preferences.get('livingSpace'))
+        if 'apartment' in living_space and pet.get('size') == 'small':
             score += 0.2
-        elif preferences.get('livingSpace') == 'yard' and pet.get('size') == 'large':
-            score += 0.2
-        
-        # Experience level
-        if preferences.get('experience') == 'first-time' and pet.get('age') == 'adult':
+        elif 'yard' in living_space and pet.get('size') == 'large':
             score += 0.2
         
-        # Time availability
-        if preferences.get('timeAvailable') == 'minimal' and pet.get('species') == 'cat':
+        # Experience level - handle both array and string formats
+        experience = get_array_value(preferences.get('experience'))
+        if 'first-time' in experience and pet.get('age') == 'adult':
+            score += 0.2
+        
+        # Time availability - handle both array and string formats
+        time_available = get_array_value(preferences.get('timeAvailable'))
+        if 'minimal' in time_available and pet.get('species') == 'cat':
             score += 0.1
         
-        return min(1.0, score)
+        # Add some base scoring to prevent all pets from getting 0.0
+        # This ensures some differentiation even with empty preferences
+        base_score = 0.1  # 10% base score for all pets
+        
+        return min(1.0, score + base_score)
 
     def _get_learned_preference_bonus(self, user_id: str, pet: Dict) -> float:
         """Get bonus score based on learned preferences"""
@@ -889,7 +1038,7 @@ class PetMatchingService:
                 user_features.append(list(features.values()))
             
             # Cluster users
-            kmeans = KMeans(n_clusters=min(3, len(users)), random_state=42)
+            kmeans = KMeans(n_clusters=min(3, len(users)), random_state=42, n_init=10)
             clusters = kmeans.fit_predict(user_features)
             
             # Group users by cluster
@@ -989,6 +1138,9 @@ class PetMatchingService:
         """
         Basic fallback match score calculation
         """
+        # Normalize incoming preferences to consistent list-based keys
+        preferences = self._normalize_preferences(preferences)
+
         score = 0.0
         factors = []
         
@@ -1018,7 +1170,8 @@ class PetMatchingService:
         
         # Living space compatibility
         if preferences.get('livingSpace') and pet.get('size'):
-            living_space = preferences['livingSpace'].lower()
+            ls = self._first_scalar(preferences.get('livingSpace'))
+            living_space = (ls or '').lower()
             if 'apartment' in living_space and pet['size'] == 'small':
                 score += 0.1
                 factors.append('Apartment suitable')
@@ -1033,41 +1186,46 @@ class PetMatchingService:
         Explain why a pet matches the preferences
         This method provides reasons for the match
         """
+        # Normalize preferences to avoid string-vs-array issues
+        preferences = self._normalize_preferences(preferences)
+
         reasons = []
-        
+
+        # Scalar normalization for list-capable fields
+        living_space = (self._first_scalar(preferences.get('livingSpace')) or '').lower()
+        experience = (self._first_scalar(preferences.get('experience')) or '').lower()
+        time_available = (self._first_scalar(preferences.get('timeAvailable')) or '').lower()
+
         # Species preference
         if preferences.get('preferredSpecies') and pet.get('species') in preferences['preferredSpecies']:
             reasons.append(f"Matches your preferred species ({pet.get('species')})")
-        
+
         # Size compatibility
-        if preferences.get('livingSpace') == 'apartment' and pet.get('size') == 'small':
+        if living_space == 'apartment' and pet.get('size') == 'small':
             reasons.append("Good for apartment living")
-        elif preferences.get('livingSpace') == 'yard' and pet.get('size') == 'large':
+        elif living_space in ('yard', 'house-with-yard') and pet.get('size') == 'large':
             reasons.append("Great for homes with yards")
-        elif preferences.get('livingSpace') == 'house' and pet.get('size') == 'medium':
+        elif living_space == 'house' and pet.get('size') == 'medium':
             reasons.append("Perfect for house living")
-        
+
         # Experience level compatibility
-        if preferences.get('experience') == 'first-time' and pet.get('age') == 'adult':
+        if experience == 'first-time' and (pet.get('age') in ('adult', 'young')):
             reasons.append("Good for first-time owners")
-        elif preferences.get('experience') == 'experienced' and pet.get('age') == 'young':
+        elif experience == 'experienced' and pet.get('age') == 'young':
             reasons.append("Perfect for experienced owners")
-        
+
         # Time availability compatibility
-        if preferences.get('timeAvailable') == 'minimal' and pet.get('species') == 'cat':
+        if time_available == 'minimal' and pet.get('species') == 'cat':
             reasons.append("Low maintenance")
-        elif preferences.get('timeAvailable') == 'significant' and pet.get('species') == 'dog':
+        elif time_available in ('significant', 'high') and pet.get('species') == 'dog':
             reasons.append("Needs active lifestyle")
-        
+
         # Children compatibility
-        if preferences.get('hasChildren') == 'yes':
-            # This would need actual behavior data, but for now we'll assume adult pets are better
-            if pet.get('age') == 'adult':
-                reasons.append("Good with children")
-        
+        if (self._first_scalar(preferences.get('hasChildren')) or '').lower() == 'yes' and pet.get('age') == 'adult':
+            reasons.append("Good with children")
+
         # Other pets compatibility
-        if preferences.get('hasOtherPets') == 'yes':
-            # This would need actual behavior data
+        if (self._first_scalar(preferences.get('hasOtherPets')) or '').lower() == 'yes':
             reasons.append("Good with other pets")
         
         # Health and behavior
@@ -1145,6 +1303,7 @@ class PetMatchingService:
 
     def compute_match_score_with_learned_weights(self, preferences: Dict, pet: Dict) -> float:
         """Compute match score using learned feature importance weights"""
+        preferences = self._normalize_preferences(preferences)
         # Use basic score directly to avoid recursion
         base_score = self._calculate_basic_match_score(preferences, pet)
         
@@ -1208,61 +1367,106 @@ class PetMatchingService:
         
         # Numerical features
         features.extend([
-            pet.get('view_count', 0),
-            pet.get('favorite_count', 0),
-            pet.get('chat_count', 0),
-            len(pet.get('photos', [])),
-            len(pet.get('description', '')),
+            pet.get('view_count', 0) or 0,
+            pet.get('favorite_count', 0) or 0,
+            pet.get('chat_count', 0) or 0,
+            len(pet.get('photos') or []),
+            len(pet.get('description') or ''),
             pet.get('adoptionFee', 0) or 0,
             self._calculate_health_score(pet),
             self._calculate_behavior_score(pet)
         ])
         
-        # Text embedding (if available)
+        # Text embedding (fixed size, pad with zeros if unavailable)
         if self.sentence_model:
-            text = f"{pet.get('description', '')} {pet.get('breed', '')} {pet.get('species', '')}"
-            text_embedding = self.sentence_model.encode(text)
-            features.extend(text_embedding[:50])  # Use first 50 dimensions
+            try:
+                text = f"{(pet.get('description') or '')} {(pet.get('breed') or '')} {(pet.get('species') or '')}"
+                text_embedding = np.asarray(self.sentence_model.encode(text), dtype=np.float32)
+                # Trim or pad to fixed dims
+                if text_embedding.size >= self._embedding_dims:
+                    features.extend(text_embedding[:self._embedding_dims])
+                else:
+                    pad = np.zeros(self._embedding_dims - text_embedding.size, dtype=np.float32)
+                    features.extend(np.concatenate([text_embedding, pad]))
+            except Exception:
+                features.extend(np.zeros(self._embedding_dims, dtype=np.float32))
+        else:
+            features.extend(np.zeros(self._embedding_dims, dtype=np.float32))
         
-        return np.array(features, dtype=np.float32)
+        arr = np.array(features, dtype=np.float32)
+        arr = np.nan_to_num(arr, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        # Ensure we never return None
+        if arr is None or not hasattr(arr, 'shape'):
+            logger.error("Failed to create pet vector, returning zero vector")
+            return np.zeros(50, dtype=np.float32)  # Return a default vector
+        
+        return arr
 
     def create_preference_vector(self, preferences: Dict) -> np.ndarray:
-        """
-        Create a comprehensive feature vector for user preferences
-        """
-        features = []
-        
-        # Categorical features (encoded)
-        lifestyle_encoded = self._encode_categorical('lifestyle', preferences.get('lifestyle', ''))
-        experience_encoded = self._encode_categorical('experience', preferences.get('experience', ''))
-        living_space_encoded = self._encode_categorical('living_space', preferences.get('livingSpace', ''))
-        time_available_encoded = self._encode_categorical('time_available', preferences.get('timeAvailable', ''))
-        
-        features.extend([lifestyle_encoded, experience_encoded, living_space_encoded, time_available_encoded])
-        
-        # Preference counts
-        features.extend([
-            len(preferences.get('preferredSpecies', [])),
-            len(preferences.get('preferredSizes', [])),
-            len(preferences.get('preferredAges', [])),
-            len(preferences.get('preferredBreeds', [])),
-            1 if preferences.get('hasChildren') == 'yes' else 0,
-            1 if preferences.get('hasOtherPets') == 'yes' else 0,
-            preferences.get('maxDistance', 50),
-            self._budget_to_numeric(preferences.get('budget', '')),
-            self._activity_level_to_numeric(preferences.get('activityLevel', ''))
-        ])
-        
-        # Text embedding for preferences (if available)
-        if self.sentence_model:
-            pref_text = f"{preferences.get('lifestyle', '')} {preferences.get('experience', '')} {preferences.get('additionalInfo', '')}"
-            pref_embedding = self.sentence_model.encode(pref_text)
-            features.extend(pref_embedding[:50])  # Use first 50 dimensions
-        
-        return np.array(features, dtype=np.float32)
+        """Create a comprehensive feature vector for user preferences.
 
-    def _encode_categorical(self, feature_name: str, value: str) -> int:
-        """Encode categorical features using LabelEncoder"""
+        Normalizes any single-element arrays from the frontend into scalars
+        before encoding/converting, avoiding dtype=object and None propagation.
+        """
+        preferences = self._normalize_preferences(preferences)
+
+        features = []
+
+        # Unwrap single values before encoding
+        lifestyle = self._first_scalar(preferences.get('lifestyle'))
+        experience = self._first_scalar(preferences.get('experience'))
+        living_space = self._first_scalar(preferences.get('livingSpace'))
+        time_available = self._first_scalar(preferences.get('timeAvailable'))
+
+        features.extend([
+            self._encode_categorical('lifestyle', lifestyle),
+            self._encode_categorical('experience', experience),
+            self._encode_categorical('living_space', living_space),
+            self._encode_categorical('time_available', time_available),
+        ])
+
+        # Counts on list fields (safe)
+        features.extend([
+            len(self._as_list(preferences.get('preferredSpecies'))),
+            len(self._as_list(preferences.get('preferredSizes'))),
+            len(self._as_list(preferences.get('preferredAges'))),
+            len(self._as_list(preferences.get('preferredBreeds'))),
+            1 if self._first_scalar(preferences.get('hasChildren')) == 'yes' else 0,
+            1 if self._first_scalar(preferences.get('hasOtherPets')) == 'yes' else 0,
+            (self._first_scalar(preferences.get('maxDistance')) or 50),
+            self._budget_to_numeric(self._first_scalar(preferences.get('budget'))),
+            self._activity_level_to_numeric(self._first_scalar(preferences.get('activityLevel'))),
+        ])
+
+        # Text embedding
+        if self.sentence_model:
+            try:
+                pref_text = f"{lifestyle} {experience} {self._first_scalar(preferences.get('additionalInfo'))}"
+                pref_embedding = np.asarray(self.sentence_model.encode(pref_text), dtype=np.float32)
+                if pref_embedding.size >= self._embedding_dims:
+                    features.extend(pref_embedding[:self._embedding_dims])
+                else:
+                    pad = np.zeros(self._embedding_dims - pref_embedding.size, dtype=np.float32)
+                    features.extend(np.concatenate([pref_embedding, pad]))
+            except Exception:
+                features.extend(np.zeros(self._embedding_dims, dtype=np.float32))
+        else:
+            features.extend(np.zeros(self._embedding_dims, dtype=np.float32))
+
+        # Reduce NaN/Inf + cast float
+        arr = np.array(features, dtype=np.float32)
+        arr = np.nan_to_num(arr, nan=0.0, posinf=0.0, neginf=0.0)
+        
+        # Ensure we never return None
+        if arr is None or not hasattr(arr, 'shape'):
+            logger.error("Failed to create preference vector, returning zero vector")
+            return np.zeros(50, dtype=np.float32)  # Return a default vector
+        
+        return arr
+
+    def _encode_categorical(self, feature_name: str, value: str) -> float:
+        """Encode categorical features using LabelEncoder, scaled to [0,1]. Unknown -> 0.0"""
         if feature_name not in self.label_encoders:
             self.label_encoders[feature_name] = LabelEncoder()
             # Initialize with common values
@@ -1270,15 +1474,18 @@ class PetMatchingService:
             self.label_encoders[feature_name].fit(common_values)
         
         try:
-            return self.label_encoders[feature_name].transform([value])[0]
+            idx = self.label_encoders[feature_name].transform([value or ''])[0]
+            num_classes = len(self.label_encoders[feature_name].classes_)
+            # Scale to (0,1]; reserve 0.0 for unknowns
+            return float(idx + 1) / float(num_classes + 1)
         except ValueError:
-            # If value not seen before, return -1
-            return -1
+            # Unknown category maps to 0.0
+            return 0.0
 
     def _get_common_values(self, feature_name: str) -> List[str]:
         """Get common values for categorical encoding"""
         common_values = {
-            'species': ['dog', 'cat', 'bird', 'other'],
+            'species': ['dog', 'cat', 'bird', 'reptile', 'exotic', 'other'],
             'size': ['small', 'medium', 'large'],
             'age': ['baby', 'young', 'adult', 'senior'],
             'breed': ['unknown', 'mixed', 'labrador', 'golden retriever', 'german shepherd', 'bulldog', 'beagle', 'poodle', 'rottweiler', 'yorkshire terrier', 'boxer', 'dachshund'],
@@ -1297,7 +1504,9 @@ class PetMatchingService:
             'high': 500,
             'unlimited': 1000
         }
-        return budget_mapping.get(budget.lower(), 300)
+        if not budget:
+            return 300
+        return budget_mapping.get((budget or '').lower(), 300)
 
     def _activity_level_to_numeric(self, activity: str) -> float:
         """Convert activity level to numeric value"""
@@ -1306,29 +1515,69 @@ class PetMatchingService:
             'moderate': 2,
             'high': 3
         }
-        return activity_mapping.get(activity.lower(), 2)
+        if not activity:
+            return 2
+        return activity_mapping.get((activity or '').lower(), 2)
 
     def compute_cosine_similarity(self, preferences: Dict, pet: Dict) -> float:
-        """
-        Compute cosine similarity between preference vector and pet vector
-        """
         try:
+            if preferences is None:
+                preferences = {}
+            if pet is None:
+                return 0.5
+
             pref_vector = self.create_preference_vector(preferences)
             pet_vector = self.create_pet_vector(pet)
-            
-            # Ensure vectors have same length
-            min_length = min(len(pref_vector), len(pet_vector))
-            pref_vector = pref_vector[:min_length]
-            pet_vector = pet_vector[:min_length]
-            
-            # Reshape for cosine_similarity
-            similarity = cosine_similarity([pref_vector], [pet_vector])[0][0]
-            
-            # Normalize to 0-1 range
-            return max(0.0, min(1.0, (similarity + 1) / 2))
-            
+
+            # Additional null checks after vector creation
+            if pref_vector is None or pet_vector is None:
+                logger.warning("One or both vectors are None after creation")
+                return 0.5
+
+            # Ensure vectors are numpy arrays
+            try:
+                pref_vector = np.asarray(pref_vector, dtype=np.float64)
+                pet_vector = np.asarray(pet_vector, dtype=np.float64)
+            except Exception as e:
+                logger.error(f"Error converting vectors to numpy arrays: {e}")
+                return 0.5
+
+            # Check if arrays are valid after conversion
+            if pref_vector is None or pet_vector is None or not hasattr(pref_vector, 'shape') or not hasattr(pet_vector, 'shape'):
+                logger.warning("Invalid vectors after numpy conversion")
+                return 0.5
+
+            pref_vector = np.nan_to_num(pref_vector, nan=0.0, posinf=0.0, neginf=0.0)
+            pet_vector = np.nan_to_num(pet_vector, nan=0.0, posinf=0.0, neginf=0.0)
+
+            # Safe shape access with additional checks
+            try:
+                lp = pref_vector.shape[0] if len(pref_vector.shape) > 0 else 0
+                lt = pet_vector.shape[0] if len(pet_vector.shape) > 0 else 0
+            except Exception as e:
+                logger.error(f"Error accessing vector shapes: {e}")
+                return 0.5
+
+            if lp == 0 or lt == 0:
+                logger.warning(f"Empty vectors: pref_len={lp}, pet_len={lt}")
+                return 0.5
+
+            if lp < lt:
+                pref_vector = np.pad(pref_vector, (0, lt - lp), mode="constant", constant_values=0.0)
+            elif lt < lp:
+                pet_vector = np.pad(pet_vector, (0, lp - lt), mode="constant", constant_values=0.0)
+
+            sim = cosine_similarity(pref_vector.reshape(1, -1), pet_vector.reshape(1, -1))[0, 0]
+            return float(max(0.0, min(1.0, (sim + 1.0) / 2.0)))
         except Exception as e:
-            logger.error(f"Error computing cosine similarity: {e}")
+            try:
+                lp = None if 'pref_vector' not in locals() or pref_vector is None else getattr(pref_vector, 'shape', None)
+                lt = None if 'pet_vector' not in locals() or pet_vector is None else getattr(pet_vector, 'shape', None)
+                dtp = None if 'pref_vector' not in locals() or pref_vector is None else getattr(pref_vector, 'dtype', None)
+                dtq = None if 'pet_vector' not in locals() or pet_vector is None else getattr(pet_vector, 'dtype', None)
+                logger.error(f"Error computing cosine similarity: {e}; pref_shape={lp}, pref_dtype={dtp}; pet_shape={lt}, pet_dtype={dtq}")
+            except Exception:
+                logger.error(f"Error computing cosine similarity: {e}")
             return 0.5
 
     def build_faiss_index(self, pets: List[Dict]) -> None:
@@ -1353,7 +1602,8 @@ class PetMatchingService:
             pet_vectors = np.array(pet_vectors, dtype=np.float32)
             
             # Normalize vectors
-            pet_vectors = pet_vectors / np.linalg.norm(pet_vectors, axis=1, keepdims=True)
+            norms = np.linalg.norm(pet_vectors, axis=1, keepdims=True)
+            pet_vectors = pet_vectors / np.maximum(norms, self._eps)
             
             # Create FAISS index
             dimension = pet_vectors.shape[1]
@@ -1382,7 +1632,8 @@ class PetMatchingService:
             query_vector = query_vector.reshape(1, -1)
             
             # Normalize query vector
-            query_vector = query_vector / np.linalg.norm(query_vector)
+            norm = np.linalg.norm(query_vector)
+            query_vector = query_vector / max(norm, self._eps)
             
             # Search
             similarities, indices = self.faiss_index.search(query_vector, k)
@@ -1436,12 +1687,17 @@ class PetMatchingService:
             text_similarity = 0.5  # Default
             if self.sentence_model:
                 pet_text = f"{pet.get('description', '')} {pet.get('breed', '')} {pet.get('species', '')}"
-                pref_text = f"{preferences.get('lifestyle', '')} {preferences.get('experience', '')} {preferences.get('additionalInfo', '')}"
-                
-                pet_embedding = self.sentence_model.encode(pet_text)
-                pref_embedding = self.sentence_model.encode(pref_text)
-                
-                text_similarity = cosine_similarity([pet_embedding], [pref_embedding])[0][0]
+                pref_lifestyle = self._first_scalar(preferences.get('lifestyle'))
+                pref_experience = self._first_scalar(preferences.get('experience'))
+                pref_extra = self._first_scalar(preferences.get('additionalInfo'))
+                pref_text = f"{pref_lifestyle} {pref_experience} {pref_extra}"
+
+                pet_embedding = np.asarray(self.sentence_model.encode(pet_text), dtype=np.float64)
+                pref_embedding = np.asarray(self.sentence_model.encode(pref_text), dtype=np.float64)
+                pet_embedding = np.nan_to_num(pet_embedding, nan=0.0, posinf=0.0, neginf=0.0).reshape(1, -1)
+                pref_embedding = np.nan_to_num(pref_embedding, nan=0.0, posinf=0.0, neginf=0.0).reshape(1, -1)
+
+                text_similarity = cosine_similarity(pet_embedding, pref_embedding)[0, 0]
                 text_similarity = max(0.0, min(1.0, (text_similarity + 1) / 2))
             
             # 4. Apply learned feature importance weights (call basic method to avoid recursion)

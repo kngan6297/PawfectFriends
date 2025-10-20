@@ -121,7 +121,13 @@ export const recommendationValidation = {
    */
   recordInteraction: Joi.object({
     body: Joi.object({
-      petId: objectIdSchema.required(),
+      petId: Joi.alternatives()
+        .try(objectIdSchema, Joi.string().valid(null).allow(null))
+        .when('interactionType', {
+          is: 'recommendation_generated',
+          then: Joi.optional(),
+          otherwise: Joi.required(),
+        }),
       interactionType: Joi.string()
         .valid('view', 'favorite', 'chat', 'recommendation_generated')
         .required(),

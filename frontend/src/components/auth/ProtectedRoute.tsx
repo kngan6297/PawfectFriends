@@ -22,23 +22,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     userRole: user?.role,
   });
 
-  // ✅ FIXED: Efficient debug logging that only runs when values change
+  // Track auth state changes efficiently
   useEffect(() => {
     const currentState = { isAuthenticated, isLoading, userRole: user?.role };
     const prevState = prevAuthState.current;
 
-    // Only log when values actually change to prevent render loops
+    // Only update when values actually change to prevent render loops
     if (JSON.stringify(currentState) !== JSON.stringify(prevState)) {
-      console.log("ProtectedRoute Debug:", {
-        pathname: location.pathname,
-        ...currentState,
-        requiredRole,
-        roleComparison: requiredRole
-          ? user?.role === requiredRole
-          : "no role required",
-        roleType: typeof user?.role,
-        requiredRoleType: typeof requiredRole,
-      });
       prevAuthState.current = currentState;
     }
   }, [isAuthenticated, isLoading, user?.role, location.pathname, requiredRole]);
@@ -52,7 +42,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!isAuthenticated) {
-    console.log("User not authenticated, redirecting to login");
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 

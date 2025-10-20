@@ -204,7 +204,7 @@ interface AuthContextType {
   register: (data: any) => Promise<AuthServiceResponse>;
   logout: () => void;
   updateUser: (data: any) => Promise<void>;
-  refreshUserProfile: () => Promise<void>;
+  refreshUserProfile: (force?: boolean) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (
     token: string,
@@ -240,6 +240,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const hasLoadedUser = useRef(false);
   const hasLoadedFavorites = useRef(false);
   const isRefreshingProfile = useRef(false);
+  const profileRefreshAttempts = useRef(0);
+  const MAX_PROFILE_REFRESH_ATTEMPTS = 2;
   const navigate = useNavigate();
   const { showToast } = useToastContext();
 
@@ -325,41 +327,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
 
-          // Fetch fresh user profile to ensure we have complete data
-          if (!hasLoadedUser.current) {
+          // Only fetch fresh profile if stored data is incomplete
+          if (!hasLoadedUser.current && !isProfileComplete(user)) {
             try {
-              const key = requestDeduplication.generateKey(
-                "GET",
-                "/api/users/profile"
-              );
-              const profileResponse = await requestDeduplication.execute(
-                key,
-                () => userApi.getProfile()
-              );
-
-              if (profileResponse?.data) {
-                const profileData =
-                  profileResponse.data?.data || profileResponse.data;
-                // Merge with existing user data, preserving important fields
-                const completeUser = {
-                  ...profileData,
-                  role: user.role, // Preserve role from stored user
-                  _id: profileData._id || user._id, // Use profile _id if available, fallback to stored user _id
-                };
-
-                setUser(completeUser);
-                localStorage.setItem("user", JSON.stringify(completeUser));
-              }
-              hasLoadedUser.current = true;
+              await refreshUserProfile(true); // Force refresh on initialization
             } catch (profileError) {
               console.error(
                 "AuthContext: Failed to fetch user profile on init:",
                 profileError
               );
               // Keep the stored user data if profile fetch fails
-              hasLoadedUser.current = true;
             }
           }
+          hasLoadedUser.current = true;
         } catch (error) {
           console.error("Error initializing auth state:", error);
           localStorage.removeItem("token");
@@ -504,9 +484,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Fetch complete user profile
         try {
-          console.log("AuthContext: Fetching user profile...");
           const profileResponse = await userApi.getProfile();
-          console.log("AuthContext: Profile response:", profileResponse);
 
           if (profileResponse?.data) {
             // Preserve the role from login response, merge other profile data
@@ -515,14 +493,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               role: user.role, // Ensure role from login is preserved
               _id: user._id, // Preserve ID from login
             };
-            console.log("AuthContext: Complete user object:", completeUser);
             setUser(completeUser);
             localStorage.setItem("user", JSON.stringify(completeUser));
             setAuthenticated(true);
           } else {
-            console.log(
-              "AuthContext: No profile data, using login user object"
-            );
             setUser(user);
             localStorage.setItem("user", JSON.stringify(user));
             setAuthenticated(true);
@@ -532,7 +506,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             "AuthContext: Failed to fetch user profile:",
             profileError
           );
-          console.log("AuthContext: Using login user object as fallback");
           setUser(user);
           localStorage.setItem("user", JSON.stringify(user));
           setAuthenticated(true);
@@ -651,7 +624,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const refreshUserProfile = async () => {
+  // Helper function to check if user profile data is complete
+  const isProfileComplete = (userData: User | null): boolean => {
+    if (!userData) return false;
+    return !!(userData.name && userData.email && userData._id);
+  };
+
+  const refreshUserProfile = async (force: boolean = false): Promise<void> => {
     if (!token || !isAuthenticated) {
       return;
     }
@@ -664,13 +643,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Add a longer delay to prevent rapid successive calls
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Only refresh if we haven't exceeded max attempts or if forced
+    if (
+      !force &&
+      profileRefreshAttempts.current >= MAX_PROFILE_REFRESH_ATTEMPTS
+    ) {
+      console.log("Max profile refresh attempts reached, skipping refresh");
+      return;
+    }
+
+    isRefreshingProfile.current = true;
+    profileRefreshAttempts.current += 1;
 
     try {
-      isRefreshingProfile.current = true;
-
-      const profileResponse = await userApi.getProfile();
+      const key = requestDeduplication.generateKey("GET", "/api/users/profile");
+      const profileResponse = await requestDeduplication.execute(key, () =>
+        userApi.getProfile()
+      );
 
       if (profileResponse?.data) {
         const profileData = profileResponse.data?.data || profileResponse.data;
@@ -681,13 +670,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           role: currentUser?.role, // Preserve role
           _id: profileData._id || currentUser?._id, // Use profile _id if available, fallback to current user _id
         };
-        console.log("AuthContext: Refreshed user object:", completeUser);
         setUser(completeUser);
         localStorage.setItem("user", JSON.stringify(completeUser));
+
+        // Reset attempts on successful refresh
+        profileRefreshAttempts.current = 0;
       }
     } catch (error) {
       console.error("AuthContext: Failed to refresh user profile:", error);
-      // Don't show toast for background refresh
+      throw error;
     } finally {
       isRefreshingProfile.current = false;
     }

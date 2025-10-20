@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { userApi } from "@/services/api";
-import { toast } from "react-toastify";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,6 +28,7 @@ import { normalizePhoneNumber } from "@/utils/phone-formatter";
 import { handleApiError } from "@/utils/error-handler";
 import { useNavigate } from "react-router-dom";
 import { formatDisplayDate } from "@/utils/dateUtils";
+import { useToastContext } from "@/components/ui/ToastProvider";
 import {
   vietnamProvincesApi,
   Province,
@@ -97,14 +97,14 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 type AddressFormData = z.infer<typeof addressSchema>;
 
 export const ProfilePage: React.FC = () => {
-  const { user, updateUser, refreshUserProfile } = useAuth();
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToastContext();
   const [isLoading, setIsLoading] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
-  const [hasRefreshedProfile, setHasRefreshedProfile] = useState(false);
 
   // Province API state
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -156,7 +156,11 @@ export const ProfilePage: React.FC = () => {
         setProvinces(provincesData);
       } catch (error) {
         console.error("Failed to load provinces:", error);
-        toast.error("Failed to load provinces data");
+        showToast({
+          type: "error",
+          title: "Error",
+          description: "Failed to load provinces data",
+        });
       } finally {
         setLoadingProvinces(false);
       }
@@ -170,15 +174,9 @@ export const ProfilePage: React.FC = () => {
     const fetchProfile = async () => {
       try {
         setIsProfileLoading(true);
-        // Only refresh user profile if data seems incomplete AND we haven't already tried
-        if ((!user?.name || !user?.email) && !hasRefreshedProfile) {
-          setHasRefreshedProfile(true);
-          await refreshUserProfile();
-        }
-
-        const response = await userApi.getProfile();
-        if (isMounted && response?.data) {
-          const profileData = response.data?.data || response.data;
+        // Use the user data from AuthContext instead of making another API call
+        if (user && isMounted) {
+          const profileData = user;
 
           // Update form defaults
           profileForm.reset({
@@ -193,23 +191,18 @@ export const ProfilePage: React.FC = () => {
           console.log("🐾 ProfilePage - Location data:", location);
 
           const addressData = {
-            street: location?.details?.street || "",
-            ward: location?.ward
-              ? { code: location.ward.code, name: location.ward.name }
-              : undefined,
-            district: location?.district
-              ? { code: location.district.code, name: location.district.name }
-              : undefined,
-            province: location?.province
-              ? { code: location.province.code, name: location.province.name }
-              : undefined,
-            country: location?.country || "Vietnam",
+            street: location?.address || "",
+            ward: undefined, // These properties don't exist in the Location interface
+            district: undefined,
+            province: undefined,
+            country: "Vietnam",
           };
 
           console.log("🐾 ProfilePage - Address data for form:", addressData);
 
           // If user has existing address data, load the corresponding districts and wards first
-          if (addressData.province) {
+          if (false) {
+            // Disabled since province property doesn't exist in Location interface
             console.log(
               "🐾 ProfilePage - Loading districts for province:",
               addressData.province.code
@@ -249,7 +242,11 @@ export const ProfilePage: React.FC = () => {
       } catch (error) {
         console.error("Failed to fetch profile:", error);
         if (isMounted) {
-          toast.error("Failed to load profile data");
+          showToast({
+            type: "error",
+            title: "Error",
+            description: "Failed to load profile data",
+          });
         }
       } finally {
         if (isMounted) {
@@ -264,14 +261,7 @@ export const ProfilePage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [
-    user?.name,
-    user?.email,
-    refreshUserProfile,
-    hasRefreshedProfile,
-    profileForm,
-    addressForm,
-  ]);
+  }, [user?.name, user?.email, profileForm, addressForm]);
 
   const handleProfileSubmit = async (data: ProfileFormData) => {
     try {
@@ -284,7 +274,11 @@ export const ProfilePage: React.FC = () => {
       const response = await userApi.updateProfile(normalizedData);
       if (response?.data) {
         updateUser(response.data);
-        toast.success("Profile updated successfully");
+        showToast({
+          type: "success",
+          title: "Success",
+          description: "Profile updated successfully",
+        });
       }
     } catch (error) {
       handleApiError(error, "Failed to update profile");
@@ -298,7 +292,11 @@ export const ProfilePage: React.FC = () => {
       setIsLoading(true);
       await userApi.changePassword(data);
       passwordForm.reset();
-      toast.success("Password changed successfully");
+      showToast({
+        type: "success",
+        title: "Success",
+        description: "Password changed successfully",
+      });
     } catch (error) {
       handleApiError(error, "Failed to change password");
     } finally {
@@ -355,7 +353,11 @@ export const ProfilePage: React.FC = () => {
       }
 
       await userApi.updateAddress(addressPayload);
-      toast.success("Address updated successfully");
+      showToast({
+        type: "success",
+        title: "Success",
+        description: "Address updated successfully",
+      });
     } catch (error) {
       handleApiError(error, "Failed to update address");
     } finally {
@@ -382,7 +384,11 @@ export const ProfilePage: React.FC = () => {
       addressForm.setValue("ward", undefined);
     } catch (error) {
       console.error("Failed to load districts:", error);
-      toast.error("Failed to load districts");
+      showToast({
+        type: "error",
+        title: "Error",
+        description: "Failed to load districts",
+      });
     } finally {
       setLoadingDistricts(false);
     }
@@ -405,7 +411,11 @@ export const ProfilePage: React.FC = () => {
       addressForm.setValue("ward", undefined);
     } catch (error) {
       console.error("Failed to load wards:", error);
-      toast.error("Failed to load wards");
+      showToast({
+        type: "error",
+        title: "Error",
+        description: "Failed to load wards",
+      });
     } finally {
       setLoadingWards(false);
     }
@@ -422,7 +432,11 @@ export const ProfilePage: React.FC = () => {
       const response = await userApi.uploadAvatar(file);
       if (response?.data?.data?.avatarUrl) {
         updateUser({ ...user, avatar: response.data.data.avatarUrl });
-        toast.success("Avatar uploaded successfully");
+        showToast({
+          type: "success",
+          title: "Success",
+          description: "Avatar uploaded successfully",
+        });
       }
     } catch (error) {
       handleApiError(error, "Failed to upload avatar");
@@ -436,7 +450,11 @@ export const ProfilePage: React.FC = () => {
       setIsLoading(true);
       await userApi.deleteAvatar();
       updateUser({ ...user, avatar: "" });
-      toast.success("Avatar removed successfully");
+      showToast({
+        type: "success",
+        title: "Success",
+        description: "Avatar removed successfully",
+      });
     } catch (error) {
       handleApiError(error, "Failed to remove avatar");
     } finally {

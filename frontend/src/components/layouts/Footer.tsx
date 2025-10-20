@@ -2,13 +2,22 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { PawPrint, Instagram, Twitter, Facebook, Youtube } from "lucide-react";
 
+// Function to scroll to top of the page
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: "smooth",
+  });
+};
+
 export const Footer: React.FC = () => {
   return (
     <footer className="bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <Link to="/" className="flex items-center">
+            <Link to="/" className="flex items-center" onClick={scrollToTop}>
               <img
                 src="/images/3500_2_03.png"
                 alt="PawfectFriends Logo"
@@ -49,6 +58,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/pets"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Find a Pet
                 </Link>
@@ -57,6 +67,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/recommendations"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Pet Matcher
                 </Link>
@@ -65,6 +76,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/adoption-guide"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Adoption Guide
                 </Link>
@@ -73,6 +85,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/pet-care"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Pet Care Resources
                 </Link>
@@ -89,6 +102,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/register?role=shelter"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Register as a Shelter
                 </Link>
@@ -97,6 +111,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/shelter/dashboard"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Shelter Dashboard
                 </Link>
@@ -105,6 +120,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/success-stories"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Success Stories
                 </Link>
@@ -113,6 +129,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/partnerships"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Partnership Opportunities
                 </Link>
@@ -129,6 +146,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/about"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Our Mission
                 </Link>
@@ -137,6 +155,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/team"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Our Team
                 </Link>
@@ -145,6 +164,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/contact"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Contact Us
                 </Link>
@@ -153,6 +173,7 @@ export const Footer: React.FC = () => {
                 <Link
                   to="/careers"
                   className="text-base text-gray-300 hover:text-white"
+                  onClick={scrollToTop}
                 >
                   Careers
                 </Link>
@@ -170,18 +191,21 @@ export const Footer: React.FC = () => {
             <Link
               to="/privacy"
               className="text-sm text-gray-400 hover:text-white"
+              onClick={scrollToTop}
             >
               Privacy Policy
             </Link>
             <Link
               to="/terms"
               className="text-sm text-gray-400 hover:text-white"
+              onClick={scrollToTop}
             >
               Terms of Service
             </Link>
             <Link
               to="/accessibility"
               className="text-sm text-gray-400 hover:text-white"
+              onClick={scrollToTop}
             >
               Accessibility
             </Link>

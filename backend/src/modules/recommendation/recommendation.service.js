@@ -72,9 +72,9 @@ class RecommendationService {
             ? pet.createdAt
             : pet.createdAt.toISOString()
           : new Date().toISOString(),
-        view_count: pet.views || 0,
-        favorite_count: pet.favorites || 0,
-        chat_count: pet.chatCount || 0,
+        view_count: Number(pet.views || 0),
+        favorite_count: Number(pet.favorites || 0),
+        chat_count: Number(pet.chatCount || 0),
       }));
 
       // Call AI service
@@ -112,7 +112,7 @@ class RecommendationService {
         return scoredPets;
       }
 
-      logger.warning(
+      logger.warn(
         'AI service returned no scored pets, falling back to local scoring'
       );
       return this.fallbackLocalScoring(pets, preferences, userId);
@@ -229,10 +229,9 @@ class RecommendationService {
       }
 
       // Get available pets
-      const petQuery = { status: 'adoptable' };
-      if (!includeAdopted) {
-        petQuery.status = { $in: ['adoptable', 'pending'] };
-      }
+      const petQuery = includeAdopted
+        ? { status: { $in: ['adoptable', 'pending', 'adopted'] } }
+        : { status: { $in: ['adoptable', 'pending'] } };
 
       const pets = await Pet.find(petQuery)
         .populate('shelter', 'name location')
@@ -310,9 +309,9 @@ class RecommendationService {
         health_records: pet.healthRecords || [],
         behavior_records: pet.behaviorRecords || [],
         created_at: pet.createdAt,
-        view_count: pet.views || 0,
-        favorite_count: pet.favorites || 0,
-        chat_count: pet.chatCount || 0,
+        view_count: Number(pet.views || 0),
+        favorite_count: Number(pet.favorites || 0),
+        chat_count: Number(pet.chatCount || 0),
       }));
 
       const response = await axios.post(
@@ -377,13 +376,14 @@ class RecommendationService {
   }
 
   /**
+   * 🔁 Legacy signature - keep it if there is an old place still called
    * Record user interaction for ML learning
    * @param {string} userId - User ID
    * @param {string} petId - Pet ID
    * @param {string} interactionType - Type of interaction
    * @param {Object} additionalData - Additional data
    */
-  async recordUserInteraction(
+  async recordUserInteractionLegacy(
     userId,
     petId,
     interactionType,
@@ -620,19 +620,17 @@ class RecommendationService {
    * @returns {number} Confidence score
    */
   calculateConfidence(factors) {
-    let confidence = 0.5; // Base confidence
+    let confidence = 0.5;
+    // Normalize: if it is a string array -> not used for calculation; If it is a numeric object -> calculated normally
+    const isArray = Array.isArray(factors);
+    if (isArray) return confidence; // keep base when there is no data
 
-    // Higher confidence if we have more data points
-    const factorCount = Object.keys(factors).length;
-    confidence += Math.min(0.3, factorCount * 0.1);
-
-    // Higher confidence for higher scores
-    const avgScore =
-      Object.values(factors).reduce((sum, score) => sum + score, 0) /
-      factorCount;
-    confidence += Math.min(0.2, avgScore * 0.2);
-
-    return Math.min(1.0, confidence);
+    const vals = Object.values(factors).filter((v) => typeof v === 'number');
+    const count = vals.length || 0;
+    confidence += Math.min(0.3, count * 0.1);
+    const avg = count ? vals.reduce((s, v) => s + v, 0) / count : 0;
+    confidence += Math.min(0.2, avg * 0.2);
+    return Math.min(1.0, Math.max(0, confidence));
   }
 
   /**
@@ -1330,8 +1328,8 @@ class RecommendationService {
   async findSimilarUsers(user) {
     const similarUsers = await User.find({
       _id: { $ne: user._id },
-      'preferences.preferredTypes': {
-        $in: user.preferences?.preferredTypes || [],
+      'preferences.preferredSpecies': {
+        $in: user.preferences?.preferredSpecies || [],
       },
     }).limit(10);
 
@@ -1387,7 +1385,7 @@ class RecommendationService {
       'german shepherd',
       'bulldog',
     ];
-    if (popularBreeds.includes(pet.breed.toLowerCase())) {
+    if (pet.breed && popularBreeds.includes(String(pet.breed).toLowerCase())) {
       score += 0.1;
     }
 
@@ -1413,7 +1411,7 @@ class RecommendationService {
     let score = 0.5; // Base score
 
     // Recent views
-    const recentViews = pet.views || 0;
+    const recentViews = Number(pet.views || 0);
     if (recentViews > 10) {
       score += 0.2; // Popular pet
     }
@@ -1484,27 +1482,21 @@ class RecommendationService {
    */
   generateExplanation(factors, pet) {
     const explanations = [];
+    const get = (k) =>
+      typeof factors === 'object' && !Array.isArray(factors)
+        ? factors[k]
+        : undefined;
+    const pref = get('preference') ?? get('compatibility') ?? 0;
+    const beh = get('behavior') ?? 0;
+    const hlth = get('health') ?? 0;
+    const adv = get('advanced') ?? 0;
 
-    if (factors.preference > 0.6) {
-      explanations.push('Matches your preferences well');
-    }
-
-    if (factors.behavior > 0.5) {
-      explanations.push('Based on your past interactions');
-    }
-
-    if (factors.health > 0.7) {
-      explanations.push('Good health and behavior records');
-    }
-
-    if (factors.advanced > 0.6) {
-      explanations.push('Similar users have shown interest');
-    }
-
-    if (explanations.length === 0) {
+    if (pref > 0.6) explanations.push('Matches your preferences well');
+    if (beh > 0.5) explanations.push('Based on your past interactions');
+    if (hlth > 0.7) explanations.push('Good health and behavior records');
+    if (adv > 0.6) explanations.push('Similar users have shown interest');
+    if (explanations.length === 0)
       explanations.push('This pet might be a good match');
-    }
-
     return `${pet.name}: ${explanations.join(', ')}.`;
   }
 
@@ -1568,11 +1560,29 @@ class RecommendationService {
     const breakdown = {
       basicCharacteristics: {
         petType:
-          requirements.petType === pet.type ? 'Perfect match' : 'Mismatch',
+          requirements.petType && pet.type
+            ? requirements.petType === pet.type
+              ? 'Perfect match'
+              : 'Mismatch'
+            : 'Not specified',
         gender:
-          requirements.gender === pet.gender ? 'Perfect match' : 'Mismatch',
-        size: requirements.size === pet.size ? 'Perfect match' : 'Mismatch',
-        age: requirements.age === pet.age ? 'Perfect match' : 'Mismatch',
+          requirements.gender && pet.gender
+            ? requirements.gender === pet.gender
+              ? 'Perfect match'
+              : 'Mismatch'
+            : 'Not specified',
+        size:
+          requirements.size && pet.size
+            ? requirements.size === pet.size
+              ? 'Perfect match'
+              : 'Mismatch'
+            : 'Not specified',
+        age:
+          requirements.age && pet.age
+            ? requirements.age === pet.age
+              ? 'Perfect match'
+              : 'Mismatch'
+            : 'Not specified',
       },
       lifestyle: {
         activityLevel: this.getCompatibilityLevel(
@@ -1901,9 +1911,9 @@ class RecommendationService {
           $addFields: {
             activityScore: {
               $add: [
-                { $multiply: ['$views', 0.1] },
-                { $multiply: ['$favorites', 0.5] },
-                { $multiply: ['$chatCount', 1.0] },
+                { $multiply: [{ $ifNull: ['$views', 0] }, 0.1] },
+                { $multiply: [{ $ifNull: ['$favorites', 0] }, 0.5] },
+                { $multiply: [{ $ifNull: ['$chatCount', 0] }, 1.0] },
               ],
             },
           },
@@ -1931,9 +1941,9 @@ class RecommendationService {
             $addFields: {
               popularityScore: {
                 $add: [
-                  { $multiply: ['$views', 0.1] },
-                  { $multiply: ['$favorites', 0.5] },
-                  { $multiply: ['$chatCount', 1.0] },
+                  { $multiply: [{ $ifNull: ['$views', 0] }, 0.1] },
+                  { $multiply: [{ $ifNull: ['$favorites', 0] }, 0.5] },
+                  { $multiply: [{ $ifNull: ['$chatCount', 0] }, 1.0] },
                 ],
               },
             },
@@ -2166,9 +2176,111 @@ class RecommendationService {
   async calculateWizardScores(preferences, pets, userId = null) {
     const scoredPets = [];
 
+    // Normalize array-based wizard preferences into scalar categories expected by scoring
+    const toArray = (v) => (Array.isArray(v) ? v : v == null ? [] : [v]);
+    const toLowerStrs = (arr) =>
+      toArray(arr).map((x) => String(x).trim().toLowerCase());
+
+    const pickFirst = (arr) =>
+      toArray(arr)[0] != null ? String(toArray(arr)[0]) : null;
+
+    const normalizeLivingSpace = (livingSpace) => {
+      const vals = toLowerStrs(livingSpace).join(' ');
+      if (vals.includes('apartment')) return 'apartment';
+      if (vals.includes('house')) return 'house';
+      if (
+        vals.includes('farm') ||
+        vals.includes('rural') ||
+        vals.includes('countryside')
+      )
+        return 'farm';
+      return pickFirst(livingSpace) || 'apartment'; // safe default
+    };
+
+    const normalizeExperience = (experience) => {
+      const vals = toLowerStrs(experience).join(' ');
+      if (
+        vals.includes('first') ||
+        vals.includes('beginner') ||
+        vals.includes('novice')
+      )
+        return 'beginner';
+      if (
+        vals.includes('some') ||
+        vals.includes('intermediate') ||
+        vals.includes('experienced')
+      )
+        return 'intermediate';
+      if (
+        vals.includes('advanced') ||
+        vals.includes('professional') ||
+        vals.includes('expert')
+      )
+        return 'advanced';
+      return 'intermediate';
+    };
+
+    const extractMaxNumber = (arr) => {
+      const nums = toLowerStrs(arr)
+        .map((s) => Number((s.match(/\d+/) || [])[0]))
+        .filter((n) => !Number.isNaN(n));
+      return nums.length ? Math.max(...nums) : null;
+    };
+
+    const normalizeTime = (timeAvailable) => {
+      const vals = toLowerStrs(timeAvailable).join(' ');
+      const n = extractMaxNumber(timeAvailable);
+      if (n != null) {
+        if (n >= 120) return 'high';
+        if (n >= 60) return 'medium';
+        return 'low';
+      }
+      if (vals.includes('high')) return 'high';
+      if (vals.includes('medium') || vals.includes('moderate')) return 'medium';
+      if (vals.includes('low') || vals.includes('limited')) return 'low';
+      return 'medium';
+    };
+
+    const normalizeLifestyle = (lifestyle) => {
+      const vals = toLowerStrs(lifestyle).join(' ');
+      if (
+        vals.includes('active') ||
+        vals.includes('athletic') ||
+        vals.includes('outdoors')
+      )
+        return 'active';
+      if (
+        vals.includes('relaxed') ||
+        vals.includes('chill') ||
+        vals.includes('sedentary')
+      )
+        return 'relaxed';
+      if (vals.includes('busy') || vals.includes('moderate')) return 'moderate';
+      return 'moderate';
+    };
+
+    const normalizeYesNo = (arr) => {
+      const vals = toLowerStrs(arr);
+      if (vals.some((v) => v === 'yes' || v === 'true' || v === '1'))
+        return 'yes';
+      if (vals.some((v) => v === 'no' || v === 'false' || v === '0'))
+        return 'no';
+      return 'no';
+    };
+
+    const normalized = {
+      livingSpace: normalizeLivingSpace(preferences.livingSpace),
+      experience: normalizeExperience(preferences.experience),
+      timeAvailable: normalizeTime(preferences.timeAvailable),
+      lifestyle: normalizeLifestyle(preferences.lifestyle),
+      hasChildren: normalizeYesNo(preferences.hasChildren),
+      hasOtherPets: normalizeYesNo(preferences.hasOtherPets),
+    };
+
     for (const pet of pets) {
       let score = 0;
       const factors = [];
+      const numericFactors = {}; // for calculateConfidence()
 
       // Species/Type matching (25% weight)
       if (
@@ -2178,78 +2290,85 @@ class RecommendationService {
         if (preferences.preferredSpecies.includes(pet.type)) {
           score += 0.25;
           factors.push('Matches preferred species');
+          numericFactors.species = 1;
         }
       }
 
       // Size compatibility (20% weight)
       if (preferences.livingSpace && pet.size) {
         const sizeCompatibility = this.calculateSizeCompatibility(
-          preferences.livingSpace,
+          normalized.livingSpace,
           pet.size
         );
         score += sizeCompatibility * 0.2;
         if (sizeCompatibility > 0.5) {
           factors.push('Size compatible with living space');
+          numericFactors.size = sizeCompatibility;
         }
       }
 
       // Experience level matching (15% weight)
       if (preferences.experience && pet.behaviorRecords) {
         const experienceMatch = this.calculateExperienceMatch(
-          preferences.experience,
+          normalized.experience,
           pet.behaviorRecords
         );
         score += experienceMatch * 0.15;
         if (experienceMatch > 0.5) {
           factors.push('Suitable for experience level');
+          numericFactors.experience = experienceMatch;
         }
       }
 
       // Time availability matching (15% weight)
       if (preferences.timeAvailable && pet.type) {
         const timeMatch = this.calculateTimeMatch(
-          preferences.timeAvailable,
+          normalized.timeAvailable,
           pet.type
         );
         score += timeMatch * 0.15;
         if (timeMatch > 0.5) {
           factors.push('Fits time availability');
+          numericFactors.time = timeMatch;
         }
       }
 
       // Lifestyle compatibility (10% weight)
       if (preferences.lifestyle && pet.type) {
         const lifestyleMatch = this.calculateLifestyleMatch(
-          preferences.lifestyle,
+          normalized.lifestyle,
           pet.type
         );
         score += lifestyleMatch * 0.1;
         if (lifestyleMatch > 0.5) {
           factors.push('Lifestyle compatible');
+          numericFactors.lifestyle = lifestyleMatch;
         }
       }
 
       // Children compatibility (10% weight)
       if (preferences.hasChildren && pet.behaviorRecords) {
         const childrenMatch = this.calculateChildrenMatch(
-          preferences.hasChildren,
+          normalized.hasChildren,
           pet.behaviorRecords
         );
         score += childrenMatch * 0.1;
         if (childrenMatch > 0.5) {
           factors.push('Good with children');
+          numericFactors.children = childrenMatch;
         }
       }
 
       // Other pets compatibility (5% weight)
       if (preferences.hasOtherPets && pet.behaviorRecords) {
         const otherPetsMatch = this.calculateOtherPetsMatch(
-          preferences.hasOtherPets,
+          normalized.hasOtherPets,
           pet.behaviorRecords
         );
         score += otherPetsMatch * 0.05;
         if (otherPetsMatch > 0.5) {
           factors.push('Good with other pets');
+          numericFactors.otherPets = otherPetsMatch;
         }
       }
 
@@ -2258,14 +2377,15 @@ class RecommendationService {
       score += healthScore * 0.1;
       if (healthScore > 0.7) {
         factors.push('Good health records');
+        numericFactors.health = healthScore;
       }
 
       scoredPets.push({
         pet,
         score: Math.min(score, 1.0), // Cap at 1.0
-        factors,
-        explanation: this.generateExplanation(factors, pet),
-        confidence: this.calculateConfidence(factors),
+        factors, // holds the description array for the UI
+        explanation: this.generateExplanation(numericFactors, pet),
+        confidence: this.calculateConfidence(numericFactors),
       });
     }
 
@@ -2431,13 +2551,13 @@ class RecommendationService {
    */
   async recordInteraction(petId, interactionType, additionalData = {}) {
     try {
-      const { ActivityLog } = await import('../activity/activity.model.js');
+      const ActivityLog = (await import('../activity/activity.model.js'))
+        .default;
       const { User } = await import('../user/user.model.js');
       const { Pet } = await import('../pet/pet.model.js');
 
-      // Get user and pet information
+      // Get user information
       const user = await User.findById(additionalData.userId);
-      const pet = await Pet.findById(petId);
 
       if (!user) {
         logger.warn(
@@ -2446,9 +2566,14 @@ class RecommendationService {
         return { success: false, error: 'User not found' };
       }
 
-      if (!pet) {
-        logger.warn(`Pet not found for interaction recording: ${petId}`);
-        return { success: false, error: 'Pet not found' };
+      // For recommendation_generated interactions, petId can be null
+      let pet = null;
+      if (petId && interactionType !== 'recommendation_generated') {
+        pet = await Pet.findById(petId);
+        if (!pet) {
+          logger.warn(`Pet not found for interaction recording: ${petId}`);
+          return { success: false, error: 'Pet not found' };
+        }
       }
 
       // Determine action and category based on interaction type
@@ -2458,17 +2583,23 @@ class RecommendationService {
         case 'view':
           action = 'pet_interaction';
           category = 'recommendation';
-          description = `User viewed pet ${pet.name}`;
+          description = pet
+            ? `User viewed pet ${pet.name}`
+            : `User viewed recommendation`;
           break;
         case 'favorite':
           action = 'favorite_added';
           category = 'recommendation';
-          description = `User added ${pet.name} to favorites`;
+          description = pet
+            ? `User added ${pet.name} to favorites`
+            : `User added recommendation to favorites`;
           break;
         case 'chat':
           action = 'pet_interaction';
           category = 'recommendation';
-          description = `User initiated chat about ${pet.name}`;
+          description = pet
+            ? `User initiated chat about ${pet.name}`
+            : `User initiated chat about recommendation`;
           break;
         case 'recommendation_generated':
           action = 'recommendation_generated';
@@ -2478,7 +2609,9 @@ class RecommendationService {
         default:
           action = 'pet_interaction';
           category = 'recommendation';
-          description = `User ${interactionType} interaction with ${pet.name}`;
+          description = pet
+            ? `User ${interactionType} interaction with ${pet.name}`
+            : `User ${interactionType} interaction`;
       }
 
       // Create activity log entry
@@ -2494,8 +2627,8 @@ class RecommendationService {
           role: user.role || 'user',
         },
         metadata: {
-          petId: pet._id,
-          petName: pet.name,
+          petId: pet ? pet._id : null,
+          petName: pet ? pet.name : null,
           interactionType,
           userPreferences: additionalData.userPreferences || {},
           petCount: additionalData.petCount || 0,
@@ -2509,7 +2642,7 @@ class RecommendationService {
       await activityLog.save();
 
       logger.info(
-        `Interaction recorded successfully: ${action} for pet ${pet.name} by user ${user.email}`
+        `Interaction recorded successfully: ${action} for ${pet ? `pet ${pet.name}` : 'recommendation generation'} by user ${user.email}`
       );
 
       // Also call the existing recordUserInteraction method for backward compatibility

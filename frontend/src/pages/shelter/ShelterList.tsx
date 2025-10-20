@@ -17,6 +17,15 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 
+// Function to scroll to top of the page
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: "smooth",
+  });
+};
+
 interface Shelter {
   _id: string;
   name: string;
@@ -281,12 +290,18 @@ const ShelterList: React.FC = () => {
 
                     {/* Actions */}
                     <div className="flex-shrink-0 flex flex-col space-y-2">
-                      <Link to={`/shelters/${shelter._id}`}>
+                      <Link
+                        to={`/shelters/${shelter._id}`}
+                        onClick={scrollToTop}
+                      >
                         <Button variant="primary" size="sm">
                           View Profile
                         </Button>
                       </Link>
-                      <Link to={`/pets?shelter=${shelter._id}`}>
+                      <Link
+                        to={`/pets?shelter=${shelter._id}`}
+                        onClick={scrollToTop}
+                      >
                         <Button variant="outline" size="sm">
                           View Pets
                         </Button>

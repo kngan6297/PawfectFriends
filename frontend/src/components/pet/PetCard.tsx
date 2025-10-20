@@ -494,6 +494,66 @@ export const PetCard: React.FC<PetCardProps> = ({
     actualPet.behavior?.goodWithCats,
   ]);
 
+  // Explainability chips derived from rules/preferences
+  const explainabilityChips = useMemo(() => {
+    const chips: string[] = [];
+
+    // Apartment-friendly: user apartment + pet not large
+    const livingSpacePref = Array.isArray(wizardPreferences?.livingSpace)
+      ? wizardPreferences?.livingSpace.join(" ").toLowerCase()
+      : String(wizardPreferences?.livingSpace || "").toLowerCase();
+    if (livingSpacePref.includes("apartment")) {
+      const size = String(
+        (actualPet as any).size || (actualPet as any).attributes?.size || ""
+      ).toLowerCase();
+      if (size && size !== "large") chips.push("Apartment-friendly");
+    }
+
+    // Low grooming: coat short/smooth
+    const coat = String(
+      (actualPet as any).coat || (actualPet as any).attributes?.coat || ""
+    ).toLowerCase();
+    if (
+      coat.includes("short") ||
+      coat.includes("smooth") ||
+      coat.includes("low")
+    ) {
+      chips.push("Low grooming");
+    }
+
+    // Kid-safe: user hasChildren yes + pet good with children
+    const hasKids = Array.isArray(wizardPreferences?.hasChildren)
+      ? wizardPreferences?.hasChildren.map(String).join(" ").toLowerCase()
+      : String(wizardPreferences?.hasChildren || "").toLowerCase();
+    if (
+      hasKids.includes("yes") &&
+      (actualPet as any).behavior?.goodWithChildren
+    ) {
+      chips.push("Kid-safe");
+    }
+
+    // Yard-friendly: user hasYard yes + pet size medium/large
+    const hasYard = Array.isArray(wizardPreferences?.hasYard)
+      ? wizardPreferences?.hasYard.map(String).join(" ").toLowerCase()
+      : String(wizardPreferences?.hasYard || "").toLowerCase();
+    const size = String(
+      (actualPet as any).size || (actualPet as any).attributes?.size || ""
+    ).toLowerCase();
+    if (hasYard.includes("yes") && (size === "medium" || size === "large")) {
+      chips.push("Yard-friendly");
+    }
+
+    // Low-shed: allergies present + coat short/smooth (heuristic)
+    const allergies = Array.isArray(wizardPreferences?.allergies)
+      ? wizardPreferences?.allergies.map(String).join(" ").toLowerCase()
+      : String(wizardPreferences?.allergies || "").toLowerCase();
+    if (allergies && (coat.includes("short") || coat.includes("smooth"))) {
+      chips.push("Lower shedding");
+    }
+
+    return chips.slice(0, 3);
+  }, [wizardPreferences, actualPet]);
+
   // Highlight priority: perfect > best > high > featured
   const score = finalMatchScore ?? 0;
   const highlight =
@@ -753,6 +813,17 @@ export const PetCard: React.FC<PetCardProps> = ({
           <p className="text-gray-600 text-sm mb-4 line-clamp-2">
             {actualPet.description || t.lookingForHome}
           </p>
+
+          {/* Explainability chips (why promoted) */}
+          {explainabilityChips.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {explainabilityChips.map((chip, idx) => (
+                <Badge key={`${chip}-${idx}`} variant="secondary" size="sm">
+                  {chip}
+                </Badge>
+              ))}
+            </div>
+          )}
 
           {/* Location and Time */}
           <div className="flex items-center justify-between text-xs text-gray-500 mb-4">

@@ -809,16 +809,7 @@ export const getContractFile = catchAsync(async (req, res) => {
   const isShelterStaff = requestShelterId === userId;
   const isAdmin = req.user.role === 'admin';
 
-  console.log('🔍 Contract File Permission Check:', {
-    userId,
-    requestUserId,
-    requestShelterId,
-    userRole: req.user.role,
-    isRequester,
-    isShelterStaff,
-    isAdmin,
-    requestId: req.params.id,
-  });
+  console.log('Contract File Permission Check');
 
   if (!isRequester && !isShelterStaff && !isAdmin) {
     throw new ApiError(403, 'Unauthorized to access contract file');
@@ -830,13 +821,7 @@ export const getContractFile = catchAsync(async (req, res) => {
     throw new ApiError(404, 'Contract not found');
   }
 
-  console.log('📋 Contract File - Contract details found:', {
-    hasFile: !!request.contractDetails.file,
-    fileKeys: request.contractDetails.file
-      ? Object.keys(request.contractDetails.file)
-      : 'no file',
-    contractStatus: request.contractDetails.status,
-  });
+  console.log('Contract File - Contract details found');
 
   // Check if contract has a file
   if (!request.contractDetails.file) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { formatDisplayDate } from "@/utils/dateUtils";
 import { useNavigate, Link } from "react-router-dom";
 import { userApi, adoptionApi, petApi } from "@/services/api";
-import { toast } from "react-toastify";
+import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
   Heart,
@@ -94,21 +94,11 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [hasRefreshedProfile, setHasRefreshedProfile] = useState(false);
-
   useEffect(() => {
     if (user) {
-      // Only refresh profile if user data seems incomplete AND we haven't already tried
-      if ((!user.name || !user.email) && !hasRefreshedProfile) {
-        setHasRefreshedProfile(true);
-        refreshUserProfile().then(() => {
-          fetchDashboardData();
-        });
-      } else {
-        fetchDashboardData();
-      }
+      fetchDashboardData();
     }
-  }, [user, refreshUserProfile, hasRefreshedProfile]);
+  }, [user]);
 
   const fetchDashboardData = async () => {
     try {

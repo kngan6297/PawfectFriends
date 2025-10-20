@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { petApi } from "@/services/api";
+import { petApi, api } from "@/services/api";
 import {
   recommendationService,
   ScoringPreferences,
   ScoredPet,
   WizardRecommendationResponse,
 } from "@/services/recommendation.service";
-import { Pet } from "@/types/pet";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useToastContext } from "@/components/ui/ToastProvider";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,16 +20,10 @@ import { PetPreferencesStep } from "@/components/recommendations/PetPreferencesS
 import { ReviewStep } from "@/components/recommendations/ReviewStep";
 import { WizardFeedbackModal } from "@/components/recommendations/WizardFeedbackModal";
 import {
-  Heart,
-  MessageCircle,
   Eye,
-  Star,
   ArrowLeft,
   RefreshCw,
   Brain,
-  Zap,
-  TrendingUp,
-  ArrowRight,
   User,
   Users,
   Shield,
@@ -41,6 +33,7 @@ import {
   FileDown,
 } from "lucide-react";
 import { chatService } from "@/services/chat.service";
+import { scrollToTopDelayed } from "@/utils/scrollUtils";
 
 interface WizardRecommendationsPageProps {}
 
@@ -70,6 +63,7 @@ type PolicyGate = {
 export const WizardRecommendationsPage: React.FC<
   WizardRecommendationsPageProps
 > = () => {
+  const sessionRef = useRef<string>(String(Date.now()));
   const [currentStep, setCurrentStep] = useState(1);
   const [stage, setStage] = useState<WizardStage>("wizard");
   const [readiness, setReadiness] = useState<Readiness | null>(null);
@@ -81,6 +75,8 @@ export const WizardRecommendationsPage: React.FC<
     Record<string, boolean>
   >({});
   const [ackTips, setAckTips] = useState<Record<string, boolean>>({});
+  const viewedCount = Object.values(viewedInfoPanels).filter(Boolean).length;
+  const tipCount = Object.values(ackTips).filter(Boolean).length;
 
   const [preferences, setPreferences] = useState<ScoringPreferences>({
     lifestyle: [],
@@ -127,6 +123,35 @@ export const WizardRecommendationsPage: React.FC<
 
   const totalSteps = 4;
 
+  // Compact, maintainable mapping to Tailwind width classes (keeps classes visible for safelist)
+  const WIDTH_CLASSES = [
+    "w-0",
+    "w-[5%]",
+    "w-[10%]",
+    "w-[15%]",
+    "w-[20%]",
+    "w-[25%]",
+    "w-[30%]",
+    "w-[35%]",
+    "w-[40%]",
+    "w-[45%]",
+    "w-[50%]",
+    "w-[55%]",
+    "w-[60%]",
+    "w-[65%]",
+    "w-[70%]",
+    "w-[75%]",
+    "w-[80%]",
+    "w-[85%]",
+    "w-[90%]",
+    "w-[95%]",
+    "w-[100%]",
+  ] as const;
+  const widthClassFor = (percent: number): string => {
+    const idx = Math.max(0, Math.min(20, Math.round(percent / 5)));
+    return WIDTH_CLASSES[idx];
+  };
+
   // Learning interaction tracking functions
   // These functions track user engagement with educational content
   // Each interaction contributes to the readiness score and badge system
@@ -140,11 +165,13 @@ export const WizardRecommendationsPage: React.FC<
     console.log(`Tip acknowledged: ${id} - contributes to readiness score`);
   };
 
-  // Helper function to check if array contains a value
-  const has = (arr?: any[], val?: string) =>
-    Array.isArray(arr) && val
-      ? arr.some((x) => String(x).toLowerCase().includes(val))
-      : false;
+  // Normalize values to string arrays and detect boolean-like truthy flags
+  const toStrArray = (v: any): string[] =>
+    Array.isArray(v) ? v.map(String) : v == null ? [] : [String(v)];
+  const boolish = (arr: any): boolean =>
+    toStrArray(arr)
+      .map((s) => s.trim().toLowerCase())
+      .some((s) => s === "true" || s === "yes" || s === "1");
 
   // Calculate readiness from core sentences + interactions (FE fallback)
   function computeReadiness(
@@ -160,15 +187,22 @@ export const WizardRecommendationsPage: React.FC<
       return [String(value)];
     };
 
-    // time
+    // time (robust numeric parsing with keyword fallback)
     let timeScore = 60;
     const timeArray = getArrayValue(prefs.timeAvailable);
     const ta = timeArray.map(String).join(" ").toLowerCase();
-    if (ta.includes("2") || ta.includes("120") || ta.includes("high"))
-      timeScore = 90;
-    else if (ta.includes("1") || ta.includes("60") || ta.includes("medium"))
-      timeScore = 75;
-    else if (ta.includes("30") || ta.includes("low")) timeScore = 55;
+    const numFrom = (s: string) => Number(s.match(/\d+/)?.[0] ?? NaN);
+    const parsedTimes = timeArray
+      .map((v) => numFrom(String(v)))
+      .filter((n) => !isNaN(n));
+    const timeNum = parsedTimes.length > 0 ? Math.max(...parsedTimes) : NaN;
+    if (!isNaN(timeNum)) {
+      if (timeNum >= 120) timeScore = 90;
+      else if (timeNum >= 60) timeScore = 75;
+      else timeScore = 55;
+    } else if (ta.includes("high")) timeScore = 90;
+    else if (ta.includes("medium")) timeScore = 75;
+    else if (ta.includes("low")) timeScore = 55;
 
     // budget
     let budgetScore = 70;
@@ -185,8 +219,7 @@ export const WizardRecommendationsPage: React.FC<
     if (ls.includes("rural")) spaceScore = 95;
     else if (ls.includes("house")) spaceScore = 85;
     else if (ls.includes("apartment")) spaceScore = 65;
-    if (has(prefs.hasYard as any, "true"))
-      spaceScore = Math.min(spaceScore + 5, 100);
+    if (boolish(prefs.hasYard)) spaceScore = Math.min(spaceScore + 5, 100);
 
     // experience
     let expScore = 70;
@@ -249,6 +282,11 @@ export const WizardRecommendationsPage: React.FC<
       .map(String)
       .join(" ")
       .toLowerCase();
+    const numFrom = (s: string) => Number(s.match(/\d+/)?.[0] ?? NaN);
+    const timeNums = getArrayValue(prefs.timeAvailable)
+      .map((v) => numFrom(String(v)))
+      .filter((n) => !isNaN(n));
+    const timeNum = timeNums.length > 0 ? Math.max(...timeNums) : NaN;
     const bud = getArrayValue(prefs.budget).map(String).join(" ").toLowerCase();
     const kids = getArrayValue(prefs.hasChildren)
       .map(String)
@@ -259,7 +297,7 @@ export const WizardRecommendationsPage: React.FC<
     if (
       ls.includes("apartment") &&
       act.includes("high") &&
-      (ta.includes("30") || ta.includes("low"))
+      ((!isNaN(timeNum) && timeNum < 60) || ta.includes("low"))
     ) {
       gates.push({
         id: "high_energy_small_space",
@@ -462,26 +500,32 @@ export const WizardRecommendationsPage: React.FC<
       }
 
       setCurrentStep(nextStep);
+      // Scroll to top when moving to next step
+      scrollToTopDelayed();
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      // Scroll to top when moving to previous step
+      scrollToTopDelayed();
     }
   };
 
   const handleEditStep = (step: number) => {
     setCurrentStep(step);
+    // Scroll to top when editing a step
+    scrollToTopDelayed();
   };
 
   const canProceed = (): boolean => {
     switch (currentStep) {
       case 1: // Lifestyle
-        return !!(
-          preferences.lifestyle &&
-          preferences.experience &&
-          preferences.timeAvailable
+        return Boolean(
+          preferences.lifestyle?.length &&
+            preferences.experience?.length &&
+            preferences.timeAvailable?.length
         );
       case 2: // Living Conditions
         return !!(
@@ -530,11 +574,13 @@ export const WizardRecommendationsPage: React.FC<
         `Wizard service returned ${results.recommendations.length} recommendations`
       );
 
-      // Apply safety gates to deprioritize unsuitable pets
+      // Apply safety gates to deprioritize unsuitable pets, then filter/sort
       const gatedRecommendations = applyGatesToRecommendations(
         results.recommendations,
         policyGates
-      );
+      )
+        .filter((sp) => sp.score >= 0.1)
+        .sort((a, b) => b.score - a.score);
 
       // Log policy gate application
       if (policyGates.length > 0) {
@@ -549,7 +595,7 @@ export const WizardRecommendationsPage: React.FC<
         );
       }
 
-      // Update results with gated recommendations
+      // Update results with gated + filtered + sorted recommendations
       const updatedResults = {
         ...results,
         recommendations: gatedRecommendations,
@@ -562,25 +608,41 @@ export const WizardRecommendationsPage: React.FC<
       const r = computeReadiness(preferences, viewedInfoPanels, ackTips);
       setReadiness(r);
 
-      const gates = computePolicyGates(preferences);
-      setPolicyGates(gates);
-
       const plan = buildCarePlanText(preferences, r);
       setCarePlan(plan);
 
       // 3) Go to SUMMARY (different from AI at this point)
       setStage("summary");
+      // Ensure the user sees the top of the summary
+      scrollToTopDelayed();
 
       if (user?._id) {
-        await recommendationService.recordInteraction(
-          "wizard_recommendation_generated",
-          "view",
-          {
-            preferences,
-            petCount: results.recommendations.length,
-            isGuest: results.isGuest,
+        try {
+          // Record the wizard recommendation generation event
+          const response = await api.post(
+            "/api/recommendations/interactions/record-enhanced",
+            {
+              petId: null, // No specific pet for wizard recommendations
+              interactionType: "recommendation_generated",
+              timestamp: new Date().toISOString(),
+              preferences,
+              petCount: results.recommendations.length,
+              isGuest: results.isGuest,
+            }
+          );
+
+          if (response.data?.success) {
+            console.log(
+              "Wizard recommendation generation recorded successfully"
+            );
           }
-        );
+        } catch (error) {
+          console.warn(
+            "Failed to record wizard recommendation generation:",
+            error
+          );
+          // Don't show error to user as this is not critical
+        }
       }
 
       showToast({
@@ -606,25 +668,33 @@ export const WizardRecommendationsPage: React.FC<
     interactionType: "view" | "favorite" | "chat"
   ) => {
     try {
-      // Record the interaction
-      await recommendationService.recordInteraction(
-        "wizard_recommendation_generated",
-        "view",
-        {
-          petId,
-          sessionId: Date.now().toString(),
-          interactionType,
+      // Record the interaction for actual pet views
+      if (petId && petId !== "wizard_recommendation_generated") {
+        await recommendationService.recordInteraction(petId, interactionType, {
+          sessionId: sessionRef.current,
           userPreferences: preferences,
-        }
-      );
-
-      if (interactionType === "favorite" && user) {
-        await petApi.toggleFavorite(petId);
-        showToast({
-          type: "success",
-          title: "Pet added to favorites!",
-          description: "This pet has been added to your favorites.",
         });
+      }
+
+      if (interactionType === "favorite") {
+        if (user) {
+          await petApi.toggleFavorite(petId);
+          showToast({
+            type: "success",
+            title: "Pet added to favorites!",
+            description: "This pet has been added to your favorites.",
+          });
+        } else {
+          showToast({
+            type: "info",
+            title: "Sign in to save favorites",
+            description: "Log in to keep track of pets you love.",
+            action: {
+              label: "Sign In",
+              href: "/auth/login",
+            },
+          } as any);
+        }
       } else if (interactionType === "chat" && user) {
         // Find the pet to get shelter information
         const pet = wizardResults?.recommendations.find(
@@ -640,8 +710,10 @@ export const WizardRecommendationsPage: React.FC<
               `Hi! I'm interested in ${pet.name}. Can you tell me more about the adoption process?`
             );
 
-            // Navigate to the chat with the conversation ID
-            navigate(`/chat/${conversation.id}`);
+            // Navigate to the chat with the conversation ID (supports id or _id)
+            const conversationId =
+              (conversation as any).id || (conversation as any)._id;
+            navigate(`/chat/${conversationId}`);
           } catch (error: any) {
             console.error("Failed to create chat:", error);
 
@@ -683,7 +755,7 @@ export const WizardRecommendationsPage: React.FC<
 
   const handleFeedback = async (
     petId: string,
-    feedback: "rule_adjustment",
+    feedback: "positive" | "negative" | "neutral",
     reason: string
   ) => {
     try {
@@ -700,8 +772,8 @@ export const WizardRecommendationsPage: React.FC<
       // Submit feedback to backend for rule adjustment
       await recommendationService.submitFeedback({
         petId,
-        feedback: "positive",
-        sessionId: Date.now().toString(),
+        feedback,
+        sessionId: sessionRef.current,
         reason: `Wizard rule adjustment: ${reason}`,
         userPreferences: preferences,
         petAttributes: scoredPet.pet,
@@ -744,10 +816,10 @@ export const WizardRecommendationsPage: React.FC<
       variant="recommendation"
       matchScore={scoredPet.score}
       index={index}
-      onFavoriteToggle={(petId, newIsFavorite) =>
-        handlePetInteraction(petId, newIsFavorite ? "favorite" : "view")
-      }
-      onFeedback={(petId) => openFeedbackModal(scoredPet)}
+      onFavoriteToggle={async (petId, _newIsFavorite) => {
+        await handlePetInteraction(petId, "favorite");
+      }}
+      onFeedback={(_petId) => openFeedbackModal(scoredPet)}
       onContact={(petId) => handlePetInteraction(petId, "chat")}
       onQuickApply={(petId) => navigate(`/pets/${petId}`)}
       // Wizard-specific props
@@ -862,8 +934,9 @@ export const WizardRecommendationsPage: React.FC<
                     </div>
                     <div className="w-full bg-green-200 rounded-full h-4 mb-2">
                       <div
-                        className="bg-gradient-to-r from-green-500 to-green-600 h-4 rounded-full transition-all duration-500 shadow-sm"
-                        style={{ width: `${value}%` }}
+                        className={`bg-gradient-to-r from-green-500 to-green-600 h-4 rounded-full transition-all duration-500 shadow-sm ${widthClassFor(
+                          value
+                        )}`}
                       ></div>
                     </div>
                     <div className="text-lg font-bold text-green-700">
@@ -901,7 +974,7 @@ export const WizardRecommendationsPage: React.FC<
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                       <span className="text-green-600 font-bold">
-                        {Object.keys(viewedInfoPanels).length}
+                        {viewedCount}
                       </span>
                     </div>
                     <div>
@@ -916,7 +989,7 @@ export const WizardRecommendationsPage: React.FC<
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                       <span className="text-blue-600 font-bold">
-                        {Object.keys(ackTips).length}
+                        {tipCount}
                       </span>
                     </div>
                     <div>
@@ -1037,7 +1110,7 @@ export const WizardRecommendationsPage: React.FC<
                   className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
                 >
                   <FileDown className="w-5 h-5 mr-2" />
-                  Download Care Plan
+                  Download Care Plan (.txt)
                 </Button>
               </div>
 
@@ -1075,7 +1148,10 @@ export const WizardRecommendationsPage: React.FC<
                   Edit Answers
                 </Button>
                 <Button
-                  onClick={() => setStage("results")}
+                  onClick={() => {
+                    setStage("results");
+                    scrollToTopDelayed();
+                  }}
                   size="lg"
                   className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg flex items-center gap-2"
                 >
@@ -1112,7 +1188,9 @@ export const WizardRecommendationsPage: React.FC<
     const gatedRecs = applyGatesToRecommendations(
       wizardResults.recommendations,
       policyGates
-    );
+    )
+      .filter((sp) => sp.score >= 0.1)
+      .sort((a, b) => b.score - a.score);
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -1197,6 +1275,27 @@ export const WizardRecommendationsPage: React.FC<
                 Back to Summary
               </Button>
             </div>
+
+            {/* Empty-state Results */}
+            {gatedRecs.length === 0 && (
+              <div className="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                <div className="flex items-center justify-center gap-2 mb-2 text-amber-800">
+                  <AlertTriangle className="w-5 h-5" />
+                  <span className="font-semibold">No safe matches yet</span>
+                </div>
+                <p className="text-amber-700 mb-4">
+                  Try adjusting your answers to broaden safe options.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => setStage("wizard")}
+                  className="inline-flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Edit Answers
+                </Button>
+              </div>
+            )}
 
             {/* Enhanced Safety Gating Message */}
             {policyGates.length > 0 && (
@@ -1320,6 +1419,41 @@ export const WizardRecommendationsPage: React.FC<
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <div className="container mx-auto px-4 py-8">
+        {/* Sticky mini progress header */}
+        <div className="sticky top-0 z-30 -mx-4 px-4 py-2 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200">
+          <div className="max-w-5xl mx-auto flex items-center justify-between text-xs md:text-sm text-gray-700">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">
+                Step {currentStep} of {totalSteps}
+              </span>
+              <div className="hidden sm:flex items-center gap-1">
+                {Array.from({ length: totalSteps }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`${
+                      i + 1 <= currentStep ? "bg-green-500" : "bg-gray-300"
+                    } inline-block h-1.5 w-6 rounded-full`}
+                    aria-hidden="true"
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">Progress</span>
+              <div className="w-28 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-green-500 transition-all"
+                  style={{
+                    width: `${Math.round((currentStep / totalSteps) * 100)}%`,
+                  }}
+                />
+              </div>
+              <span className="w-10 text-right font-medium">
+                {Math.round((currentStep / totalSteps) * 100)}%
+              </span>
+            </div>
+          </div>
+        </div>
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 flex items-center justify-center gap-3 mb-4">
             <Shield className="w-8 h-8 md:w-10 md:h-10 text-green-600" />
@@ -1432,8 +1566,9 @@ export const WizardRecommendationsPage: React.FC<
                   <div className="text-sm text-green-700 mb-1">Time</div>
                   <div className="w-full bg-green-200 rounded-full h-2">
                     <div
-                      className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${readiness.bars.time}%` }}
+                      className={`bg-green-600 h-2 rounded-full transition-all duration-300 ${widthClassFor(
+                        readiness.bars.time
+                      )}`}
                     ></div>
                   </div>
                   <div className="text-xs text-green-600 mt-1">
@@ -1445,8 +1580,9 @@ export const WizardRecommendationsPage: React.FC<
                   <div className="text-sm text-green-700 mb-1">Budget</div>
                   <div className="w-full bg-green-200 rounded-full h-2">
                     <div
-                      className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${readiness.bars.budget}%` }}
+                      className={`bg-green-600 h-2 rounded-full transition-all duration-300 ${widthClassFor(
+                        readiness.bars.budget
+                      )}`}
                     ></div>
                   </div>
                   <div className="text-xs text-green-600 mt-1">
@@ -1458,8 +1594,9 @@ export const WizardRecommendationsPage: React.FC<
                   <div className="text-sm text-green-700 mb-1">Space</div>
                   <div className="w-full bg-green-200 rounded-full h-2">
                     <div
-                      className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${readiness.bars.space}%` }}
+                      className={`bg-green-600 h-2 rounded-full transition-all duration-300 ${widthClassFor(
+                        readiness.bars.space
+                      )}`}
                     ></div>
                   </div>
                   <div className="text-xs text-green-600 mt-1">
@@ -1471,8 +1608,9 @@ export const WizardRecommendationsPage: React.FC<
                   <div className="text-sm text-green-700 mb-1">Experience</div>
                   <div className="w-full bg-green-200 rounded-full h-2">
                     <div
-                      className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${readiness.bars.experience}%` }}
+                      className={`bg-green-600 h-2 rounded-full transition-all duration-300 ${widthClassFor(
+                        readiness.bars.experience
+                      )}`}
                     ></div>
                   </div>
                   <div className="text-xs text-green-600 mt-1">
@@ -1484,10 +1622,8 @@ export const WizardRecommendationsPage: React.FC<
               {/* Learning Progress */}
               <div className="flex items-center justify-between text-sm text-green-700">
                 <div className="flex items-center gap-4">
-                  <span>
-                    📚 Info panels: {Object.keys(viewedInfoPanels).length}
-                  </span>
-                  <span>💡 Tips: {Object.keys(ackTips).length}</span>
+                  <span>📚 Info panels: {viewedCount}</span>
+                  <span>💡 Tips: {tipCount}</span>
                 </div>
                 <div className="text-xs">
                   {readiness.flags.length > 0 && (
@@ -1523,7 +1659,7 @@ export const WizardRecommendationsPage: React.FC<
                     size="sm"
                     className="text-green-700 border-green-300 hover:bg-green-50 hover:border-green-400"
                   >
-                    Download PDF
+                    Download Care Plan (.txt)
                   </Button>
                 </div>
                 <p className="text-xs text-green-600 mt-1">
@@ -1602,11 +1738,15 @@ export const WizardRecommendationsPage: React.FC<
           <WizardFeedbackModal
             isOpen={isFeedbackModalOpen}
             onClose={closeFeedbackModal}
-            onSubmit={(petId, feedback, reason) => {
+            onSubmit={(_petId, modalFeedback, reason) => {
               const actualPetId =
                 selectedPetForFeedback.pet.id || selectedPetForFeedback.pet._id;
               if (actualPetId) {
-                handleFeedback(actualPetId, feedback, reason);
+                const mappedFeedback =
+                  modalFeedback === "rule_adjustment"
+                    ? "neutral"
+                    : modalFeedback;
+                handleFeedback(actualPetId, mappedFeedback, reason);
               }
             }}
             onGoBackToWizard={goBackToWizard}

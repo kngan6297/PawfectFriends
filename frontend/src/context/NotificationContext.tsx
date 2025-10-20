@@ -12,6 +12,11 @@ import {
   Notification as NotificationType,
   UnreadCountResponse,
 } from "../types/notification";
+import {
+  useNotificationsQuery,
+  useUnreadNotificationsCount,
+  useMarkNotificationReadMutation,
+} from "../hooks/useApiQueries";
 
 interface NotificationContextType {
   notifications: NotificationType[];
@@ -49,75 +54,42 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 }) => {
   const { user } = useAuth();
 
-  const [notifications, setNotifications] = useState<NotificationType[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Use React Query hooks for notifications
+  const {
+    data: notificationsData,
+    isLoading: notificationsLoading,
+    error: notificationsError,
+  } = useNotificationsQuery();
+  const { data: unreadCountData, isLoading: unreadCountLoading } =
+    useUnreadNotificationsCount();
+  const markAsReadMutation = useMarkNotificationReadMutation();
 
-  const fetchNotifications = useCallback(
-    async (params: any = {}) => {
-      if (!user) return;
+  const notifications = notificationsData?.data?.notifications || [];
+  const unreadCount = unreadCountData?.data?.unreadCount || 0;
+  const loading = notificationsLoading || unreadCountLoading;
+  const error = notificationsError?.message || null;
 
-      const key = requestDeduplication.generateKey('GET', '/api/notifications', params);
-      
-      return requestDeduplication.execute(key, async () => {
-        try {
-          setLoading(true);
-          setError(null);
-          const response = await notificationApi.getNotifications(params);
-          setNotifications(response.data.notifications);
-        } catch (err: any) {
-          setError(
-            err.response?.data?.message || "Failed to fetch notifications"
-          );
-          console.error("Error fetching notifications:", err);
-        } finally {
-          setLoading(false);
-        }
-      });
-    },
-    [user]
-  );
+  // React Query handles fetching automatically, so we can remove these functions
+  const fetchNotifications = useCallback(async (params: any = {}) => {
+    // This function is kept for backward compatibility but React Query handles the actual fetching
+    console.log("fetchNotifications called with params:", params);
+  }, []);
 
   const refreshUnreadCount = useCallback(async () => {
-    if (!user) return;
-
-    const key = requestDeduplication.generateKey('GET', '/api/notifications/unread-count');
-    
-    return requestDeduplication.execute(key, async () => {
-      try {
-        const response = await notificationApi.getUnreadCount();
-        setUnreadCount(response.data.unreadCount);
-      } catch (err: any) {
-        console.error("Error fetching unread count:", err);
-      }
-    });
-  }, [user]);
+    // This function is kept for backward compatibility but React Query handles the actual fetching
+    console.log("refreshUnreadCount called");
+  }, []);
 
   const markAsRead = useCallback(
     async (notificationId: string) => {
       try {
-        await notificationApi.markAsRead(notificationId);
-
-        // Update local state
-        setNotifications((prev) =>
-          prev.map((notification) =>
-            notification._id === notificationId
-              ? { ...notification, isRead: true, readAt: new Date() }
-              : notification
-          )
-        );
-
-        // Refresh unread count
-        await refreshUnreadCount();
+        await markAsReadMutation.mutateAsync(notificationId);
       } catch (err: any) {
-        setError(
-          err.response?.data?.message || "Failed to mark notification as read"
-        );
         console.error("Error marking notification as read:", err);
+        throw err;
       }
     },
-    [refreshUnreadCount]
+    [markAsReadMutation]
   );
 
   const markAllAsRead = useCallback(async () => {
@@ -194,14 +166,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   // Real-time notifications are handled by the communication service
   // Socket functionality has been moved to the communication folder
-
-  // Initial data fetch
-  useEffect(() => {
-    if (user) {
-      fetchNotifications();
-      refreshUnreadCount();
-    }
-  }, [user, fetchNotifications, refreshUnreadCount]);
 
   // Request notification permission
   useEffect(() => {

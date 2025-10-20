@@ -1019,11 +1019,6 @@ export const userApi = {
 export const authApi = {
     login: async (emailOrPhone: string, password: string) => {
         const response = await api.post("/auth/login", { emailOrPhone, password });
-        console.log("Raw API response:", {
-            status: response.status,
-            data: response.data,
-            headers: response.headers
-        });
         if (!response.data.success) {
             throw new Error(response.data.message || 'Login failed');
         }

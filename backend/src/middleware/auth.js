@@ -33,16 +33,6 @@ export const authenticate = async (req, res, next) => {
       throw ApiError.unauthorized('User account is not verified');
     }
 
-    // Debug logging
-    console.log('=== AUTH DEBUG ===');
-    console.log('User authenticated successfully:', {
-      id: user._id,
-      email: user.email,
-      role: user.role,
-      emailVerified: user.emailVerified,
-    });
-    console.log('==================');
-
     // Attach user to request object
     req.user = user;
     next();
@@ -97,26 +87,7 @@ export const authorize = (...roles) => {
       return next(ApiError.unauthorized('User not authenticated'));
     }
 
-    // Debug logging for authorization
-    console.log('=== AUTHORIZE DEBUG ===');
-    console.log('User role:', req.user.role);
-    console.log('User role type:', typeof req.user.role);
-    console.log('Allowed roles:', roles);
-    console.log('Role check result:', roles.includes(req.user.role));
-    console.log('Role comparison details:', {
-      userRole: req.user.role,
-      userRoleType: typeof req.user.role,
-      allowedRoles: roles,
-      allowedRolesTypes: roles.map((r) => typeof r),
-      includesResult: roles.includes(req.user.role),
-      lowercaseMatch: roles
-        .map((r) => r.toLowerCase())
-        .includes(req.user.role?.toLowerCase()),
-    });
-    console.log('======================');
-
     if (!roles.includes(req.user.role)) {
-      // console.log('[Authorize] Role:', req.user?.role, 'Allowed:', roles);
       return next(ApiError.forbidden('Insufficient permissions'));
     }
 

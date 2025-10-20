@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { scrollToTopDelayed } from "@/utils/scrollUtils";
 
 interface AiRecommendationPreferences {
     lifestyle: string[];
@@ -61,17 +62,23 @@ export const useAiRecommendationSteps = () => {
     const handleNextStep = () => {
         if (currentStep < totalSteps) {
             setCurrentStep(currentStep + 1);
+            // Scroll to top when moving to next step
+            scrollToTopDelayed();
         }
     };
 
     const handlePreviousStep = () => {
         if (currentStep > 1) {
             setCurrentStep(currentStep - 1);
+            // Scroll to top when moving to previous step
+            scrollToTopDelayed();
         }
     };
 
     const handleEditStep = (step: number) => {
         setCurrentStep(step);
+        // Scroll to top when editing a step
+        scrollToTopDelayed();
     };
 
     const resetPreferences = () => {

@@ -23,6 +23,15 @@ import { petApi, userApi } from "@/services/api";
 import { useNavigate } from "react-router-dom";
 import { useToastContext } from "@/components/ui/ToastProvider";
 
+// Function to scroll to top of the page
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: "smooth",
+  });
+};
+
 export const PetDetailPage: React.FC = () => {
   const { petId } = useParams<{ petId: string }>();
   const [pet, setPet] = useState<Pet | null>(null);
@@ -397,7 +406,10 @@ export const PetDetailPage: React.FC = () => {
                   variant="primary"
                   fullWidth
                   leftIcon={Building2}
-                  onClick={() => navigate(`/shelters/${pet.shelter._id}`)}
+                  onClick={() => {
+                    navigate(`/shelters/${pet.shelter._id}`);
+                    scrollToTop();
+                  }}
                 >
                   View Shelter Profile
                 </Button>

@@ -1,10 +1,12 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Any, Union
 import uvicorn
 import logging
 from datetime import datetime
+from sklearn.metrics.pairwise import cosine_similarity  # for optional text similarity
+from dateutil import parser as dtparser  # tolerant ISO timestamp parsing
 import json
 
 from services.pet_matching import PetMatchingService
@@ -20,10 +22,11 @@ app = FastAPI(
 )
 
 # Add CORS middleware
+ALLOWED_ORIGINS = ["http://localhost:5173", "https://your-frontend.app"]  # TODO: adjust according to deploy
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,  # enable cookies/auth
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -50,23 +53,23 @@ class PetData(BaseModel):
     age: str
     size: str
     description: Optional[str] = None
-    photos: Optional[List[PhotoData]] = []
-    health_records: Optional[List[Dict]] = []
-    behavior_records: Optional[List[Dict]] = []
+    photos: List[PhotoData] = Field(default_factory=list)
+    health_records: List[Dict] = Field(default_factory=list)
+    behavior_records: List[Dict] = Field(default_factory=list)
     created_at: Optional[str] = None
-    view_count: Optional[int] = 0
-    favorite_count: Optional[int] = 0
-    chat_count: Optional[int] = 0
+    view_count: int = 0
+    favorite_count: int = 0
+    chat_count: int = 0
     
     class Config:
         extra = "allow"  # Allow extra fields to be more flexible
 
 class UserData(BaseModel):
     id: str
-    preferences: Optional[Dict] = {}
-    interactionHistory: Optional[List[Dict]] = []
-    favoritePets: Optional[List[str]] = []
-    adoptionHistory: Optional[List[str]] = []
+    preferences: Dict = Field(default_factory=dict)
+    interactionHistory: List[Dict] = Field(default_factory=list)
+    favoritePets: List[str] = Field(default_factory=list)
+    adoptionHistory: List[str] = Field(default_factory=list)
     
     class Config:
         extra = "allow"  # Allow extra fields to be more flexible
@@ -74,14 +77,14 @@ class UserData(BaseModel):
 class MLRecommendationRequest(BaseModel):
     user: UserData
     pets: List[PetData]
-    preferences: Optional[Dict] = {}
+    preferences: Dict = Field(default_factory=dict)
     limit: Optional[int] = 10
 
 class MLRecommendationResponse(BaseModel):
     recommendations: List[Dict]
     total_pets: int
     ml_enabled: bool
-    model_version: str
+    version: str
 
 class InteractionRecord(BaseModel):
     user_id: str
@@ -101,6 +104,11 @@ class SimilarPetsResponse(BaseModel):
     similar_pets: List[Dict[str, Any]]
     search_method: str
     query_pet_id: str
+
+class CollaborativeRecommendationResponse(BaseModel):
+    recommendations: List[Dict[str, Any]]
+    user_id: str
+    total_recommendations: int
 
 class AdvancedMatchRequest(BaseModel):
     preferences: Dict[str, Any]
@@ -137,7 +145,7 @@ class ScoredPet(BaseModel):
     ml_score: Optional[float] = None
     rule_score: Optional[float] = None
     learned_bonus: Optional[float] = None
-    factors: List[str] = []
+    factors: List[str] = Field(default_factory=list)
     explanation: str = ""
     confidence: float = 0.5
 
@@ -156,11 +164,11 @@ class PreferencesModel(BaseModel):
     timeAvailable: Optional[Union[str, List[str]]] = None
     hasChildren: Optional[Union[str, List[str]]] = None
     hasOtherPets: Optional[Union[str, List[str]]] = None
-    preferredSpecies: Optional[List[str]] = []
-    preferredTypes: Optional[List[str]] = []
-    preferredSizes: Optional[List[str]] = []
-    preferredAges: Optional[List[str]] = []
-    preferredBreeds: Optional[List[str]] = []
+    preferredSpecies: List[str] = Field(default_factory=list)
+    preferredTypes: List[str] = Field(default_factory=list)
+    preferredSizes: List[str] = Field(default_factory=list)
+    preferredAges: List[str] = Field(default_factory=list)
+    preferredBreeds: List[str] = Field(default_factory=list)
     maxDistance: Optional[int] = None
     activityLevel: Optional[Union[str, List[str]]] = None
     budget: Optional[Union[str, List[str]]] = None
@@ -175,13 +183,13 @@ class PetModel(BaseModel):
     age: str
     size: str
     description: Optional[str] = None
-    photos: Optional[List[str]] = []
-    health_records: Optional[List[Dict]] = []
-    behavior_records: Optional[List[Dict]] = []
+    photos: List[str] = Field(default_factory=list)
+    health_records: List[Dict] = Field(default_factory=list)
+    behavior_records: List[Dict] = Field(default_factory=list)
     created_at: Optional[str] = None
-    view_count: Optional[int] = 0
-    favorite_count: Optional[int] = 0
-    chat_count: Optional[int] = 0
+    view_count: int = 0
+    favorite_count: int = 0
+    chat_count: int = 0
     adoptionFee: Optional[float] = None
     status: Optional[str] = "adoptable"
 
@@ -200,8 +208,8 @@ class RecommendationFeedback(BaseModel):
     feedback_type: str  # 'positive', 'negative', 'neutral'
     reason: str
     details: Optional[str] = None
-    user_preferences: Dict[str, Any]
-    pet_attributes: Dict[str, Any]
+    user_preferences: Dict[str, Any] = Field(default_factory=dict)
+    pet_attributes: Dict[str, Any] = Field(default_factory=dict)
     recommendation_score: Optional[float] = None
     session_id: Optional[str] = None
     timestamp: Optional[str] = None
@@ -323,7 +331,7 @@ async def recommend_pets(preferences: PreferencesModel, pets: List[PetModel]):
                     cleaned_preferences[key] = value[0] if value else None
                 else:
                     # For multi-select fields or other types, keep as is
-                    cleaned_preferences[key] = value
+                    cleaned_preferences[key] = value if value not in ("", None, []) else None
             
             logger.info(f"Cleaned preferences: {cleaned_preferences}")
             
@@ -435,7 +443,8 @@ async def score_pets(request: ScorePetsRequest):
                 confidence += 0.2
             if learned_bonus > 0.1:
                 confidence += 0.1
-            confidence = min(1.0, confidence)
+            confidence = 0.0 if confidence != confidence else confidence  # NaN guard
+            confidence = max(0.0, min(1.0, confidence))
             
             scored_pet = ScoredPet(
                 pet=PetData(**pet_data),
@@ -497,7 +506,7 @@ async def get_ml_recommendations(request: MLRecommendationRequest):
             recommendations=recommendations,
             total_pets=len(pets_data),
             ml_enabled=True,
-            model_version="1.0.0"
+            version="1.0.0"
         )
         
     except Exception as e:
@@ -505,7 +514,7 @@ async def get_ml_recommendations(request: MLRecommendationRequest):
         logger.error(f"Request data: {request.dict() if hasattr(request, 'dict') else 'Could not serialize request'}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/recommendations/similar")
+@app.post("/api/recommendations/similar", response_model=SimilarPetsResponse)
 async def get_similar_pets(request: SimilarPetsRequest):
     """
     Get similar pets using content-based filtering
@@ -521,17 +530,17 @@ async def get_similar_pets(request: SimilarPetsRequest):
             limit=request.limit
         )
         
-        return {
-            "similar_pets": similar_pets,
-            "target_pet_id": request.pet_id,
-            "total_similar": len(similar_pets)
-        }
+        return SimilarPetsResponse(
+            similar_pets=similar_pets,
+            search_method="content_based",
+            query_pet_id=request.pet_id
+        )
         
     except Exception as e:
         logger.error(f"Error getting similar pets: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/recommendations/collaborative")
+@app.post("/api/recommendations/collaborative", response_model=CollaborativeRecommendationResponse)
 async def get_collaborative_recommendations(request: CollaborativeRecommendationRequest):
     """
     Get collaborative filtering recommendations
@@ -548,11 +557,11 @@ async def get_collaborative_recommendations(request: CollaborativeRecommendation
             pets=pets_data
         )
         
-        return {
-            "recommendations": collaborative_recs,
-            "user_id": request.user_id,
-            "total_recommendations": len(collaborative_recs)
-        }
+        return CollaborativeRecommendationResponse(
+            recommendations=collaborative_recs,
+            user_id=request.user_id,
+            total_recommendations=len(collaborative_recs)
+        )
         
     except Exception as e:
         logger.error(f"Error getting collaborative recommendations: {e}")
@@ -573,7 +582,7 @@ async def record_interaction(request: InteractionRecord):
             interaction_type=request.interaction_type,
             pet_data=request.pet_data.dict(),
             user_data=request.user_data.dict(),
-            timestamp=datetime.fromisoformat(request.timestamp) if request.timestamp else None
+            timestamp=dtparser.isoparse(request.timestamp) if request.timestamp else None
         )
         
         return {
@@ -607,7 +616,7 @@ async def record_recommendation_feedback(request: RecommendationFeedback):
             pet_attributes=request.pet_attributes,
             recommendation_score=request.recommendation_score,
             session_id=request.session_id,
-            timestamp=datetime.fromisoformat(request.timestamp) if request.timestamp else None
+            timestamp=dtparser.isoparse(request.timestamp) if request.timestamp else None
         )
         
         return FeedbackResponse(

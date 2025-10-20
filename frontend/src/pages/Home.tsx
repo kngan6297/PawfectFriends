@@ -7,7 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useFavoritePets } from "@/hooks/useFavoritePets";
 import { useToastContext } from "@/components/ui/ToastProvider";
 import { Search, Heart, MessageCircle, Shield, PawPrint } from "lucide-react";
-import { petApi } from "@/services/api";
+import { useLatestPets } from "@/hooks/useApiQueries";
+import { scrollToTop } from "@/utils/scrollUtils";
 
 // Responsive limit function based on screen size
 const getResponsiveLimit = () => {
@@ -21,23 +22,17 @@ const getResponsiveLimit = () => {
 };
 
 export const HomePage: React.FC = () => {
-  const [latestPets, setLatestPets] = useState<Pet[]>([]);
-  const [loading, setLoading] = useState(true);
   const [limit, setLimit] = useState(8);
-  const { user, refreshUserProfile } = useAuth();
+  const { user } = useAuth();
   const { toggleFavoritePet, isPetFavorited } = useFavoritePets();
   const { showToast } = useToastContext();
-  const [hasRefreshedProfile, setHasRefreshedProfile] = useState(false);
 
-  // Refresh user profile if needed (similar to Dashboard)
-  useEffect(() => {
-    if (user && (!user.name || !user.email) && !hasRefreshedProfile) {
-      setHasRefreshedProfile(true);
-      refreshUserProfile().catch((error) => {
-        console.error("Failed to refresh user profile on homepage:", error);
-      });
-    }
-  }, [user, refreshUserProfile, hasRefreshedProfile]);
+  // Use React Query for latest pets
+  const {
+    data: latestPets = [],
+    isLoading: loading,
+    error,
+  } = useLatestPets(limit);
 
   // Update limit on window resize
   useEffect(() => {
@@ -50,28 +45,6 @@ export const HomePage: React.FC = () => {
 
     return () => window.removeEventListener("resize", updateLimit);
   }, []);
-
-  useEffect(() => {
-    const fetchLatestPets = async () => {
-      try {
-        setLoading(true);
-        const pets = await petApi.getLatestPets(limit);
-        if (Array.isArray(pets)) {
-          setLatestPets(pets);
-        } else {
-          console.error("Invalid response format:", pets);
-          setLatestPets([]);
-        }
-      } catch (error) {
-        console.error("Failed to fetch latest pets:", error);
-        setLatestPets([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLatestPets();
-  }, [limit]);
 
   const handleFavoriteToggle = async (
     petId: string,
@@ -88,20 +61,12 @@ export const HomePage: React.FC = () => {
 
     // If user data seems incomplete, try to refresh it first
     if (!user.name || !user.email) {
-      try {
-        await refreshUserProfile();
-      } catch (error) {
-        console.error(
-          "Failed to refresh user profile for favorite toggle:",
-          error
-        );
-        showToast({
-          type: "error",
-          title: "Error",
-          description: "Please refresh the page and try again",
-        });
-        return;
-      }
+      showToast({
+        type: "error",
+        title: "Error",
+        description: "Please refresh the page and try again",
+      });
+      return;
     }
 
     try {
@@ -209,6 +174,7 @@ export const HomePage: React.FC = () => {
         <div className="mt-10 text-center">
           <Link
             to="/pets"
+            onClick={scrollToTop}
             className="btn-primary inline-flex items-center px-6 py-3 text-base font-medium"
           >
             View All Pets

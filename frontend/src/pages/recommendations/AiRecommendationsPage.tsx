@@ -6,7 +6,7 @@ import React, {
   useMemo,
 } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { petApi } from "@/services/api";
+import { petApi, api } from "@/services/api";
 import {
   recommendationService,
   ScoringPreferences,
@@ -27,6 +27,7 @@ import { submitFeedback } from "@/components/recommendations/FeedbackHandler";
 import { Brain, Zap, TrendingUp } from "lucide-react";
 import { chatService } from "@/services/chat.service";
 import { useDebouncedEffect } from "@/hooks/useDebouncedEffect";
+import { scrollToTopDelayed } from "@/utils/scrollUtils";
 
 interface AiRecommendationsPageProps {}
 
@@ -159,6 +160,9 @@ export const AiRecommendationsPage: React.FC<
     if (!hasUsedRecommendations) {
       setShowTutorialBanner(true);
     }
+
+    // Scroll to top when page loads
+    scrollToTopDelayed();
   }, []);
 
   // Define validation function before using it
@@ -447,8 +451,8 @@ export const AiRecommendationsPage: React.FC<
           const petSpecies = pet.type?.toLowerCase();
 
           if (preferredSpeciesSet.has(petSpecies || "")) {
-            // Heavy bonus for species preference match (multiply by 2.0)
-            baseScore = baseScore * 2.0;
+            // Moderate bonus for species preference match (multiply by 1.3)
+            baseScore = baseScore * 1.3;
             console.log(
               `Species preference bonus applied to ${pet.name}: ${
                 pet.type
@@ -457,8 +461,8 @@ export const AiRecommendationsPage: React.FC<
               ).join(", ")}], score: ${baseScore}`
             );
           } else {
-            // Heavy penalty for species preference mismatch (multiply by 0.3)
-            baseScore = baseScore * 0.3;
+            // Moderate penalty for species preference mismatch (multiply by 0.7)
+            baseScore = baseScore * 0.7;
             console.log(
               `Species preference penalty applied to ${pet.name}: ${
                 pet.type
@@ -475,7 +479,7 @@ export const AiRecommendationsPage: React.FC<
           const petAge = pet.age?.toLowerCase();
 
           if (petAge === preferredAge) {
-            baseScore = baseScore * 1.5; // 50% bonus for age match
+            baseScore = baseScore * 1.2; // 20% bonus for age match
             console.log(
               `Age preference bonus applied to ${pet.name}: ${pet.age} matches ${preferredAge}, score: ${baseScore}`
             );
@@ -490,7 +494,7 @@ export const AiRecommendationsPage: React.FC<
           const petSize = pet.size?.toLowerCase();
 
           if (petSize === preferredSize) {
-            baseScore = baseScore * 1.3; // 30% bonus for size match
+            baseScore = baseScore * 1.15; // 15% bonus for size match
             console.log(
               `Size preference bonus applied to ${pet.name}: ${pet.size} matches ${preferredSize}, score: ${baseScore}`
             );
@@ -691,6 +695,9 @@ export const AiRecommendationsPage: React.FC<
         setHasRecommendations(true);
       }
 
+      // Scroll to top when recommendations are generated
+      scrollToTopDelayed();
+
       // Mark that user has used recommendations
       try {
         localStorage.setItem(LS_KEYS.USED, "true");
@@ -700,24 +707,31 @@ export const AiRecommendationsPage: React.FC<
       setShowTutorialBanner(false);
 
       // Record interaction for learning (only for logged-in users)
+      // Note: For AI recommendations, we don't record individual pet interactions
+      // since these are generated recommendations without specific pet IDs
       if (user?._id) {
-        const interactionResult = await recommendationService.recordInteraction(
-          "recommendation_generated",
-          "recommendation_generated",
-          {
-            preferences,
-            petCount: topResults.length,
-            recommendationId: `${Date.now()}`,
-            recommendationScore: topResults[0]?.score ?? 0,
-            sessionId: `${Date.now()}`,
-          }
-        );
-
-        if (interactionResult?.success) {
-          console.log(
-            "Interaction recorded successfully:",
-            interactionResult.activityLogId
+        try {
+          // Record the recommendation generation event
+          const response = await api.post(
+            "/api/recommendations/interactions/record-enhanced",
+            {
+              petId: null, // No specific pet for AI recommendations
+              interactionType: "recommendation_generated",
+              timestamp: new Date().toISOString(),
+              preferences,
+              petCount: topResults.length,
+              recommendationId: `${Date.now()}`,
+              recommendationScore: topResults[0]?.score ?? 0,
+              sessionId: `${Date.now()}`,
+            }
           );
+
+          if (response.data?.success) {
+            console.log("Recommendation generation recorded successfully");
+          }
+        } catch (error) {
+          console.warn("Failed to record recommendation generation:", error);
+          // Don't show error to user as this is not critical
         }
       }
 

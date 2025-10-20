@@ -30,12 +30,7 @@ router.use(authenticate);
 
 // Debug middleware for user routes
 router.use((req, res, next) => {
-  console.log('🐾 User route accessed:', {
-    method: req.method,
-    url: req.url,
-    userId: req.user?._id,
-    userExists: !!req.user,
-  });
+  console.log(`${req.method} /api/users${req.url}`);
   next();
 });
 
