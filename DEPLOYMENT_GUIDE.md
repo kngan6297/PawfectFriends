@@ -18,12 +18,14 @@ Your PawfectFriends project consists of:
 ### **Render Deployment (Active)**
 
 **Current Status:**
+
 - ✅ **Frontend**: Deployed on Render (https://pawfectfriends-frontend.onrender.com)
 - 🔄 **Backend**: Currently deploying on Render (https://pawfectfriends.onrender.com)
 - ✅ **Communication App**: Deployed on Render (https://pawfectfriends-81t1.onrender.com)
 - ✅ **AI Service**: Deployed on Render (https://pawfectfriends-1.onrender.com)
 
 **Why Render:**
+
 - Supports all our services (Node.js, Python, Vue.js)
 - Generous free tier
 - Easy GitHub integration
