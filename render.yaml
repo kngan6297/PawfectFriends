@@ -1,0 +1,74 @@
+services:
+  - type: web
+    name: pawfectfriends-backend
+    env: node
+    plan: free
+    buildCommand: npm ci --only=production
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: ZEGO_APP_ID
+        sync: false
+      - key: ZEGO_SERVER_SECRET
+        sync: false
+
+  - type: web
+    name: pawfectfriends-ai
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements-minimal.txt
+    startCommand: python -m uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: MODEL_PATH
+        value: ./recommendation_model.joblib
+      - key: ARTIFACTS_PATH
+        value: ./recommendation_artifacts.joblib
+
+  - type: web
+    name: pawfectfriends-frontend
+    env: static
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://pawfectfriends-backend.onrender.com
+      - key: VITE_ZEGO_APP_ID
+        sync: false
+      - key: VITE_COMM_URL
+        value: https://pawfectfriends-comm.onrender.com
+
+  - type: web
+    name: pawfectfriends-comm
+    env: static
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./comm/dist
+    envVars:
+      - key: VITE_ZEGO_APP_ID
+        sync: false
+      - key: VITE_API_URL
+        value: https://pawfectfriends-backend.onrender.com
