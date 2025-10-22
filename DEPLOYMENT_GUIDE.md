@@ -13,16 +13,22 @@ Your PawfectFriends project consists of:
 - **AI Service**: Python/FastAPI ML service
 - **Database**: MongoDB
 
-## 🎯 Recommended Deployment Strategy
+## 🎯 Current Deployment Strategy
 
-### **Option 1: Railway + Vercel (Recommended)**
+### **Render Deployment (Active)**
 
-**Why this combination:**
+**Current Status:**
+- ✅ **Frontend**: Deployed on Render (https://pawfectfriends-frontend.onrender.com)
+- 🔄 **Backend**: Currently deploying on Render (https://pawfectfriends.onrender.com)
+- ✅ **Communication App**: Deployed on Render (https://pawfectfriends-81t1.onrender.com)
+- ✅ **AI Service**: Deployed on Render (https://pawfectfriends-1.onrender.com)
 
-- Railway: Excellent for full-stack apps, supports both Node.js and Python
-- Vercel: Best-in-class for frontend applications
-- Both have generous free tiers
+**Why Render:**
+- Supports all our services (Node.js, Python, Vue.js)
+- Generous free tier
 - Easy GitHub integration
+- Built-in database support
+- Automatic deployments
 
 **Cost**: Completely FREE
 

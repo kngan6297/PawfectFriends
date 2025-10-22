@@ -246,21 +246,24 @@ python -m pytest
 
 ## 🚀 Deployment
 
-### Production Checklist
-- [ ] Environment variables configured
-- [ ] Database connection secured
-- [ ] HTTPS enabled
-- [ ] Security headers configured
-- [ ] File upload limits set
-- [ ] Rate limiting enabled
-- [ ] Logging configured
-- [ ] Error handling implemented
+### Current Deployment Status
+- **Frontend**: ✅ Deployed on Render (https://pawfectfriends-frontend.onrender.com)
+- **Backend**: 🔄 Deploying on Render (https://pawfectfriends.onrender.com)
+- **Communication App**: ✅ Deployed on Render (https://pawfectfriends-81t1.onrender.com)
+- **AI Service**: ✅ Deployed on Render (https://pawfectfriends-1.onrender.com)
 
-### Docker Deployment
-```bash
-# Build and run with Docker Compose
-docker-compose up -d
-```
+### Production Checklist
+- [x] Environment variables configured
+- [x] Database connection secured
+- [x] HTTPS enabled
+- [x] Security headers configured
+- [x] File upload limits set
+- [x] Rate limiting enabled
+- [x] Logging configured
+- [x] Error handling implemented
+
+### Render Deployment
+The application is currently deployed on Render. See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed deployment instructions.
 
 ## 🤝 Contributing
 
