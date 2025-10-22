@@ -59,9 +59,6 @@ export const PetDetailPage: React.FC = () => {
         setIsLoading(true);
         const response = await petApi.getById(petId);
 
-        // Debug: Log pet data to see photos structure
-        console.log("🔍 PetDetail Debug - Pet data:", response);
-        console.log("🔍 PetDetail Debug - Photos:", response?.photos);
 
         if (response?.name) {
           setPet(response);
@@ -208,10 +205,6 @@ export const PetDetailPage: React.FC = () => {
     pet.photos?.find((photo) => photo.isMain) ||
     pet.photos?.[0];
 
-  // Debug: Log main photo data
-  console.log("🔍 PetDetail Debug - mainPhoto:", mainPhoto);
-  console.log("🔍 PetDetail Debug - activeImageIndex:", activeImageIndex);
-  console.log("🔍 PetDetail Debug - pet.photos length:", pet.photos?.length);
   const gender = pet?.gender ?? "unknown";
   const genderLabel = gender.charAt(0).toUpperCase() + gender.slice(1);
   const typeLabel = pet?.type
