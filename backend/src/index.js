@@ -87,6 +87,9 @@ async function load(name, spec) {
   // 3.5 Express app
   const app = express();
 
+  // Trust proxy for rate limiting behind reverse proxy (Render)
+  app.set('trust proxy', process.env.TRUST_PROXY === 'true' || process.env.NODE_ENV === 'production');
+
   app.use(helmet());
   app.use(compression());
   app.use(cookieParser());
