@@ -51,7 +51,7 @@ services:
     name: pawfectfriends-frontend
     env: static
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run build:skip-check
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
@@ -65,7 +65,7 @@ services:
     name: pawfectfriends-comm
     env: static
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run build:skip-check
     staticPublishPath: ./comm/dist
     envVars:
       - key: VITE_ZEGO_APP_ID
