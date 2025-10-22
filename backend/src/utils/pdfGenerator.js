@@ -5,7 +5,7 @@
  * @deprecated Use pdf.service.js instead
  */
 
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 import {
   htmlToPdfBuffer,
   markdownToPdfBuffer,

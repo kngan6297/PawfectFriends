@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "build": "npm ci --only=production --no-audit --no-fund",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -46,7 +47,7 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.9",
     "p-limit": "^6.2.0",
-    "puppeteer": "^21.11.0",
+    "puppeteer-core": "^21.11.0",
     "slugify": "^1.6.6",
     "ua-parser-js": "^2.0.3",
     "uuid": "^9.0.1",

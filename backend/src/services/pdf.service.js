@@ -3,7 +3,7 @@
  * Compact service for converting HTML to PDF using Puppeteer
  */
 
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 
 /**
  * Convert HTML content to PDF buffer
@@ -14,6 +14,7 @@ export async function htmlToPdfBuffer(html) {
   const browser = await puppeteer.launch({
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    executablePath: process.env.CHROME_BIN || '/usr/bin/google-chrome-stable',
   });
 
   const page = await browser.newPage();
@@ -107,6 +108,7 @@ export async function generatePdf(html, options = {}) {
   const browser = await puppeteer.launch({
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    executablePath: process.env.CHROME_BIN || '/usr/bin/google-chrome-stable',
   });
 
   const page = await browser.newPage();
