@@ -1,14 +1,13 @@
 [phases.setup]
-nixPkgs = ['nodejs-18_x', 'npm-9_x']
+nixPkgs = ['nodejs-18_x']
 
 [phases.install]
 cmds = [
-  'npm ci --only=production --no-audit --no-fund --silent',
-  'npm cache clean --force'
+  'npm ci --only=production --no-audit --no-fund --silent'
 ]
 
 [phases.build]
-cmds = ['npm run build || echo "Build step optional"']
+cmds = ['echo "Skipping build step for faster deployment"']
 
 [start]
 cmd = 'npm start'

@@ -246,6 +246,16 @@ async def root():
         ]
     }
 
+@app.get("/health")
+async def health_check():
+    """Simple health check endpoint for Railway"""
+    return {
+        "status": "OK",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0",
+        "environment": "production"
+    }
+
 @app.post("/api/validate-request")
 async def validate_request(request: Dict[str, Any]):
     """
