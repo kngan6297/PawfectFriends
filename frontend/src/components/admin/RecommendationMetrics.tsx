@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "@/config/api";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, AlertCircle, Clock, TrendingUp } from "lucide-react";
 

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { authApi } from "@/services/api";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/ui/Card";
 import { useToastContext } from "@/components/ui/ToastProvider";
 
 export const VerificationStatus: React.FC = () => {

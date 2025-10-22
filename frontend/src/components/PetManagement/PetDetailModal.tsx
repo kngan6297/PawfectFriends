@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { petApi } from "@/services/api";
 import { petService } from "@/services/pet.service";
 import { Pet } from "@/types/pet";

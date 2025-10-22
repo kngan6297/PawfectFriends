@@ -1,7 +1,7 @@
 import React from "react";
 import { Search, RefreshCw, Heart } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Card, CardBody } from "@/components/ui/card";
+import { Card, CardBody } from "@/components/ui/Card";
 
 interface EmptyPetStateProps {
   onTryAgain?: () => void;
