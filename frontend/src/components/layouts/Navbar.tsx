@@ -3,14 +3,12 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Menu,
   Bell,
-  Search,
   Heart,
   LogOut,
   PawPrint,
   ChevronDown,
   MessageSquare,
   LayoutDashboard,
-  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
@@ -134,29 +132,6 @@ export const Navbar: React.FC = () => {
 
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             <div className="flex items-center space-x-4">
-              {/* Refresh - Only on Dashboard */}
-              {location.pathname === "/dashboard" && (
-                <button
-                  className="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                  title="Refresh dashboard"
-                  onClick={() => window.location.reload()}
-                >
-                  <span className="sr-only">Refresh</span>
-                  <RefreshCw className="h-6 w-6" aria-hidden="true" />
-                </button>
-              )}
-
-              {/* Search - Only for regular users */}
-              {!isDashboardUser && (
-                <button
-                  className="p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                  title="Search pets"
-                >
-                  <span className="sr-only">Search</span>
-                  <Search className="h-6 w-6" aria-hidden="true" />
-                </button>
-              )}
-
               {user && (
                 <>
                   {/* User-specific features - Only for regular users */}
@@ -192,7 +167,11 @@ export const Navbar: React.FC = () => {
                         />
                       ) : (
                         <div className="h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center">
-                          {user?.name ? user.name.charAt(0).toUpperCase() : "?"}
+                          {user?.name && user.name.trim()
+                            ? user.name.charAt(0).toUpperCase()
+                            : user?.email
+                            ? user.email.charAt(0).toUpperCase()
+                            : "U"}
                         </div>
                       )}
                       <ChevronDown className="ml-1 h-4 w-4 text-gray-400" />
@@ -382,7 +361,11 @@ export const Navbar: React.FC = () => {
                     />
                   ) : (
                     <div className="h-10 w-10 rounded-full bg-blue-500 text-white flex items-center justify-center">
-                      {user?.name ? user.name.charAt(0).toUpperCase() : "?"}
+                      {user?.name && user.name.trim()
+                        ? user.name.charAt(0).toUpperCase()
+                        : user?.email
+                        ? user.email.charAt(0).toUpperCase()
+                        : "U"}
                     </div>
                   )}
                 </div>
