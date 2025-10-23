@@ -49,7 +49,7 @@ export const prodConfig: IntegrationConfig = {
     mainAppUrl: import.meta.env.VITE_MAIN_APP_URL || 'https://pawfectfriends.xyz',
     mainAppPort: 443,
     communicationPort: parseInt(import.meta.env.VITE_COMMUNICATION_PORT || '3000'),
-    apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'https://api.pawfectfriends.xyz',
+    apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'https://api.pawfectfriends.xyz/api',
     authEndpoint: '/auth',
     userProfileEndpoint: '/users/profile',
     wsUrl: import.meta.env.VITE_WS_URL || 'wss://api.pawfectfriends.xyz',

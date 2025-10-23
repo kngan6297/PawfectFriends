@@ -29,7 +29,7 @@ export interface PetInfo {
 
 export class PetService {
     private config = {
-        apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'https://api.pawfectfriends.xyz',
+        apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'https://api.pawfectfriends.xyz/api',
     };
 
     /**
@@ -43,11 +43,7 @@ export class PetService {
                 return null;
             }
 
-            // Handle both cases: baseUrl with or without /api
-            const baseUrl = this.config.apiBaseUrl.endsWith('/api')
-                ? this.config.apiBaseUrl
-                : `${this.config.apiBaseUrl}/api`;
-            const response = await fetch(`${baseUrl}/pets/${petId}`, {
+            const response = await fetch(`${this.config.apiBaseUrl}/pets/${petId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -84,11 +80,7 @@ export class PetService {
                 return [];
             }
 
-            // Handle both cases: baseUrl with or without /api
-            const baseUrl = this.config.apiBaseUrl.endsWith('/api')
-                ? this.config.apiBaseUrl
-                : `${this.config.apiBaseUrl}/api`;
-            const response = await fetch(`${baseUrl}/pets/batch`, {
+            const response = await fetch(`${this.config.apiBaseUrl}/pets/batch`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
