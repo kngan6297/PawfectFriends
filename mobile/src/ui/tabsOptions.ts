@@ -19,18 +19,20 @@ export const makeTabsOptions = (colors: any): BottomTabNavigationOptions => {
             height: 56 + insets.bottom,
             paddingTop: 6,
             paddingBottom: insets.bottom + 6,
+            paddingHorizontal: 8,
             backgroundColor: colors.background,
             borderTopWidth: 1,
             borderTopColor: colors.border,
             ...(Platform.OS === "android" ? { elevation: 0 } : {}),
             ...Platform.select({ web: { width: "100%" } }),
         },
-        tabBarItemStyle: { paddingVertical: 2 },
-        tabBarIconStyle: { marginTop: 2 },
+        tabBarItemStyle: { paddingVertical: 1 },
+        tabBarIconStyle: { marginTop: 1 },
         tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: "700",
-            marginTop: 2
+            fontSize: 10,
+            fontWeight: "600",
+            marginTop: 2,
+            marginBottom: 2,
         } as any,
     } as BottomTabNavigationOptions;
 };

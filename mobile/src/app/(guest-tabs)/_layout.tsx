@@ -13,7 +13,7 @@ export default function GuestTabsLayout() {
   ) => (
     <Ionicons
       name={(focused ? on : off) as any}
-      size={22}
+      size={20}
       color={focused ? colors.primary : colors.textSecondary}
     />
   );
