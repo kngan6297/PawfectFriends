@@ -8,7 +8,7 @@ class ApiService {
 
     constructor() {
         this.api = axios.create({
-            baseURL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000',
+            baseURL: process.env.EXPO_PUBLIC_API_URL || 'https://pawfectfriends-backend.onrender.com',
             timeout: 10000,
             headers: {
                 'Content-Type': 'application/json',
