@@ -166,16 +166,17 @@ const App: React.FC = () => {
           element={<WizardRecommendationsPage />}
         />
 
-        {/* Communication Route - User Dashboard */}
-        <Route
-          path="/communication"
-          element={
-            <ProtectedRoute allowedRoles={["user", "shelter", "admin"]}>
-              <CommunicationPage />
-            </ProtectedRoute>
-          }
-        />
       </Route>
+
+      {/* Communication Route - Standalone */}
+      <Route
+        path="/communication"
+        element={
+          <ProtectedRoute allowedRoles={["user", "shelter", "admin"]}>
+            <CommunicationPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Shelter Routes - New organized structure with sidebar navigation */}
       <Route element={<ShelterLayoutWrapper />}>

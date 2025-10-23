@@ -1,3 +1,7 @@
 # SPA routing fallback for React Router
 # All routes should fallback to index.html so React Router can handle them
 /*    /index.html   200
+
+# Specific routes that need to be handled by React Router
+/communication    /index.html   200
+/communication/*    /index.html   200
