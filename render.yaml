@@ -55,7 +55,7 @@ services:
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://pawfectfriends-backend.onrender.com
+        value: https://pawfectfriends.onrender.com
       - key: VITE_ZEGO_APP_ID
         sync: false
       - key: VITE_COMM_URL
