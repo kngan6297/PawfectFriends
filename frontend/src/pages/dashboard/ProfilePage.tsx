@@ -105,6 +105,7 @@ export const ProfilePage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
+  const [profileData, setProfileData] = useState<any>(null);
 
   // Province API state
   const [provinces, setProvinces] = useState<Province[]>([]);
@@ -181,6 +182,9 @@ export const ProfilePage: React.FC = () => {
 
         if (profileData && isMounted) {
           console.log("🐾 ProfilePage - Fresh profile data:", profileData);
+          
+          // Store profile data in state for profile overview section
+          setProfileData(profileData);
 
           // Update form defaults
           profileForm.reset({
@@ -523,10 +527,10 @@ export const ProfilePage: React.FC = () => {
               <div className="text-center">
                 <div className="relative inline-block">
                   <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 mx-auto mb-4">
-                    {user?.avatar ? (
+                    {profileData?.avatar ? (
                       <img
-                        src={user.avatar}
-                        alt={user.name}
+                        src={profileData.avatar}
+                        alt={profileData.name}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -547,7 +551,7 @@ export const ProfilePage: React.FC = () => {
                     />
                   </label>
                 </div>
-                {user?.avatar && (
+                {profileData?.avatar && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -564,15 +568,15 @@ export const ProfilePage: React.FC = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Name</p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {user?.name}
+                    {profileData?.name || "N/A"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Email</p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {user?.email}
+                    {profileData?.email || "N/A"}
                   </p>
-                  {user?.emailVerified ? (
+                  {profileData?.emailVerified ? (
                     <Badge className="bg-green-100 text-green-800 mt-1">
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Verified
@@ -589,8 +593,8 @@ export const ProfilePage: React.FC = () => {
                     Member Since
                   </p>
                   <p className="text-lg font-semibold text-gray-900">
-                    {user?.createdAt
-                      ? formatDisplayDate(new Date(user.createdAt))
+                    {profileData?.createdAt
+                      ? formatDisplayDate(new Date(profileData.createdAt))
                       : "N/A"}
                   </p>
                 </div>
