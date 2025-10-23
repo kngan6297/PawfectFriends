@@ -459,6 +459,129 @@ services:
 - **Render Documentation**: [render.com/docs](https://render.com/docs)
 - **Community**: [community.render.com](https://community.render.com)
 
+## 📱 Mobile App Deployment
+
+### Prerequisites
+
+- Node.js 18+
+- Expo CLI (`npm install -g @expo/cli`)
+- EAS CLI (`npm install -g eas-cli`)
+- Expo account (free at [expo.dev](https://expo.dev))
+
+### Deployment Options
+
+#### Option 1: EAS Build (Recommended)
+
+EAS Build is Expo's cloud service for building production-ready apps.
+
+1. **Login to EAS:**
+   ```bash
+   cd mobile
+   eas login
+   ```
+
+2. **Configure EAS:**
+   ```bash
+   eas build:configure
+   ```
+
+3. **Build for Android:**
+   ```bash
+   # APK for testing
+   eas build --platform android --profile preview
+   
+   # AAB for Google Play Store
+   eas build --platform android --profile production
+   ```
+
+4. **Build for iOS:**
+   ```bash
+   # For iOS Simulator
+   eas build --platform ios --profile preview
+   
+   # For App Store
+   eas build --platform ios --profile production
+   ```
+
+5. **Submit to Stores:**
+   ```bash
+   # Submit to Google Play Store
+   eas submit --platform android
+   
+   # Submit to Apple App Store
+   eas submit --platform ios
+   ```
+
+#### Option 2: Local Development Build
+
+For development and testing:
+
+1. **Start Development Server:**
+   ```bash
+   cd mobile
+   npm start
+   ```
+
+2. **Run on Device:**
+   ```bash
+   # Android
+   npm run android
+   
+   # iOS
+   npm run ios
+   
+   # Web
+   npm run web
+   ```
+
+#### Option 3: Expo Go (Quick Testing)
+
+1. **Install Expo Go app** on your phone
+2. **Start development server:**
+   ```bash
+   cd mobile
+   npm start
+   ```
+3. **Scan QR code** with Expo Go app
+
+### Environment Configuration
+
+Create `mobile/.env` file:
+
+```env
+EXPO_PUBLIC_API_URL=https://pawfectfriends-backend.onrender.com
+EXPO_PUBLIC_APP_NAME=PawfectFriends
+EXPO_PUBLIC_ZEGO_APP_ID=your-zego-app-id
+```
+
+### Build Profiles
+
+The `eas.json` file includes three build profiles:
+
+- **development**: For development builds with debugging
+- **preview**: For internal testing (APK for Android)
+- **production**: For store releases (AAB for Android, App Store for iOS)
+
+### Store Submission
+
+#### Google Play Store
+
+1. Build production AAB: `eas build --platform android --profile production`
+2. Submit: `eas submit --platform android`
+3. Complete store listing in Google Play Console
+
+#### Apple App Store
+
+1. Build production iOS: `eas build --platform ios --profile production`
+2. Submit: `eas submit --platform ios`
+3. Complete store listing in App Store Connect
+
+### Troubleshooting
+
+- **Build failures**: Check `eas.json` configuration
+- **Environment variables**: Ensure all `EXPO_PUBLIC_*` variables are set
+- **Store submission**: Verify store credentials and app metadata
+
 ## 🤝 Contributing
 
 1. Fork the repository
