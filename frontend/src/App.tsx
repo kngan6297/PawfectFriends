@@ -77,6 +77,27 @@ const App: React.FC = () => {
   
   return (
     <Routes>
+      {/* Communication Route - First priority */}
+      <Route
+        path="/communication"
+        element={
+          <ProtectedRoute allowedRoles={["user", "shelter", "admin"]}>
+            <CommunicationPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Test Route - Simple test to verify SPA routing works */}
+      <Route
+        path="/test-route"
+        element={
+          <div style={{ padding: "20px", textAlign: "center" }}>
+            <h1>Test Route Works!</h1>
+            <p>If you can see this, SPA routing is working.</p>
+          </div>
+        }
+      />
+
       {/* Auth Routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
@@ -169,16 +190,6 @@ const App: React.FC = () => {
         />
 
       </Route>
-
-      {/* Communication Route - Standalone */}
-      <Route
-        path="/communication"
-        element={
-          <ProtectedRoute allowedRoles={["user", "shelter", "admin"]}>
-            <CommunicationPage />
-          </ProtectedRoute>
-        }
-      />
 
       {/* Shelter Routes - New organized structure with sidebar navigation */}
       <Route element={<ShelterLayoutWrapper />}>
