@@ -17,7 +17,7 @@ const CommunicationPage: React.FC = () => {
     // Set the communication URL based on environment
     let url = import.meta.env.DEV
       ? `http://localhost:${import.meta.env.VITE_COMMUNICATION_PORT || "3000"}`
-      : import.meta.env.VITE_COMMUNICATION_URL || "/communication";
+      : import.meta.env.VITE_COMMUNICATION_URL || "https://pawfectfriends-81t1.onrender.com";
 
     console.log("🔍 CommunicationPage - Base URL:", url);
     console.log("🔍 CommunicationPage - Environment:", {

@@ -378,7 +378,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setAuthToken(null);
             localStorage.removeItem("user");
             setAuthenticated(false);
-            navigate("/login");
+            // Don't redirect here - let the component-level redirect logic handle it
           }
           setFavoritePets([]);
           setFavoritePetIds([]);
