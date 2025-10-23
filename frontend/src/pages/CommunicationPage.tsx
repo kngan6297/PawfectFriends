@@ -17,13 +17,14 @@ const CommunicationPage: React.FC = () => {
     // Set the communication URL based on environment
     let url = import.meta.env.DEV
       ? `http://localhost:${import.meta.env.VITE_COMMUNICATION_PORT || "3000"}`
-      : import.meta.env.VITE_COMMUNICATION_URL || "https://pawfectfriends-81t1.onrender.com";
+      : import.meta.env.VITE_COMMUNICATION_URL || import.meta.env.VITE_COMM_URL || "https://pawfectfriends-81t1.onrender.com";
 
     console.log("🔍 CommunicationPage - Base URL:", url);
     console.log("🔍 CommunicationPage - Environment:", {
       DEV: import.meta.env.DEV,
       VITE_COMMUNICATION_PORT: import.meta.env.VITE_COMMUNICATION_PORT,
-      VITE_COMMUNICATION_URL: import.meta.env.VITE_COMMUNICATION_URL
+      VITE_COMMUNICATION_URL: import.meta.env.VITE_COMMUNICATION_URL,
+      VITE_COMM_URL: import.meta.env.VITE_COMM_URL
     });
 
     // Add URL parameters if they exist
@@ -47,7 +48,7 @@ const CommunicationPage: React.FC = () => {
       const token = localStorage.getItem("token");
       
       // Handle different user data structures
-      const userData = user.data || user; // Handle both {data: {...}} and direct user object
+      const userData = (user as any).data || user; // Handle both {data: {...}} and direct user object
       
       const authData = {
         userId: userData._id || userData.id,
@@ -71,7 +72,7 @@ const CommunicationPage: React.FC = () => {
       const token = localStorage.getItem("token");
       
       // Handle different user data structures
-      const userData = user.data || user; // Handle both {data: {...}} and direct user object
+      const userData = (user as any).data || user; // Handle both {data: {...}} and direct user object
       
       const authData = {
         userId: userData._id || userData.id,
