@@ -59,7 +59,6 @@ export const PetDetailPage: React.FC = () => {
         setIsLoading(true);
         const response = await petApi.getById(petId);
 
-
         if (response?.name) {
           setPet(response);
           setError(null);

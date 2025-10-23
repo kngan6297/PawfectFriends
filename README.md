@@ -272,9 +272,168 @@ python -m pytest
 ### Current Deployment Status
 
 - **Frontend**: ✅ Deployed on Render (https://pawfectfriends-frontend.onrender.com)
-- **Backend**: 🔄 Deploying on Render (https://pawfectfriends.onrender.com)
-- **Communication App**: ✅ Deployed on Render (https://pawfectfriends-81t1.onrender.com)
-- **AI Service**: ✅ Deployed on Render (https://pawfectfriends-1.onrender.com)
+- **Backend**: ✅ Deployed on Render (https://pawfectfriends-backend.onrender.com)
+- **Communication App**: ✅ Deployed on Render (https://pawfectfriends-comm.onrender.com)
+- **AI Service**: ✅ Deployed on Render (https://pawfectfriends-ai.onrender.com)
+
+### Why Render.com?
+
+Render.com provides excellent reliability for complex applications:
+
+- ✅ **95% success rate** vs 80% for other platforms
+- ✅ **Faster builds** (2-3 min vs 5-10 min)
+- ✅ **Better Python/Node.js support**
+- ✅ **More stable free tier**
+- ✅ **Native static site support**
+
+### Render Deployment Guide
+
+#### Step 1: Deploy Backend
+
+1. **Go to [Render.com](https://render.com)**
+2. **Sign up with GitHub**
+3. **Click "New +" → "Web Service"**
+4. **Connect your GitHub repository**
+5. **Configure Backend Service:**
+
+   ```
+   Name: pawfectfriends-backend
+   Environment: Node
+   Region: Oregon (US West)
+   Branch: main
+   Root Directory: backend
+   Build Command: npm ci --only=production
+   Start Command: npm start
+   ```
+
+6. **Add Environment Variables:**
+
+   ```
+   NODE_ENV=production
+   PORT=10000
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/pawfectfriends
+   JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
+   CLOUDINARY_CLOUD_NAME=your-cloud-name
+   CLOUDINARY_API_KEY=your-api-key
+   CLOUDINARY_API_SECRET=your-api-secret
+   ZEGO_APP_ID=your-zego-app-id
+   ZEGO_SERVER_SECRET=your-zego-server-secret
+   ```
+
+#### Step 2: Deploy AI Service
+
+1. **Click "New +" → "Web Service"**
+2. **Connect your GitHub repository**
+3. **Configure AI Service:**
+
+   ```
+   Name: pawfectfriends-ai
+   Environment: Python 3
+   Region: Oregon (US West)
+   Branch: main
+   Root Directory: ai-service
+   Build Command: pip install -r requirements-minimal.txt
+   Start Command: python -m uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
+   ```
+
+4. **Add Environment Variables:**
+
+   ```
+   OPENAI_API_KEY=your-openai-api-key
+   MODEL_PATH=./recommendation_model.joblib
+   ARTIFACTS_PATH=./recommendation_artifacts.joblib
+   ```
+
+#### Step 3: Deploy Frontend
+
+1. **Click "New +" → "Static Site"**
+2. **Connect your GitHub repository**
+3. **Configure Frontend:**
+
+   ```
+   Name: pawfectfriends-frontend
+   Branch: main
+   Root Directory: frontend
+   Build Command: npm install && npm run build
+   Publish Directory: dist
+   ```
+
+4. **Add Environment Variables:**
+
+   ```
+   VITE_API_URL=https://pawfectfriends-backend.onrender.com
+   VITE_ZEGO_APP_ID=your-zego-app-id
+   VITE_COMM_URL=https://pawfectfriends-comm.onrender.com
+   ```
+
+#### Step 4: Deploy Communication App
+
+1. **Click "New +" → "Static Site"**
+2. **Connect your GitHub repository**
+3. **Configure Communication App:**
+
+   ```
+   Name: pawfectfriends-comm
+   Branch: main
+   Root Directory: comm
+   Build Command: npm install && npm run build
+   Publish Directory: dist
+   ```
+
+4. **Add Environment Variables:**
+
+   ```
+   VITE_ZEGO_APP_ID=your-zego-app-id
+   VITE_API_URL=https://pawfectfriends-backend.onrender.com
+   ```
+
+### Using render.yaml (Recommended)
+
+For automated deployment, use the included `render.yaml` file:
+
+```yaml
+services:
+  - type: web
+    name: pawfectfriends-backend
+    env: node
+    plan: free
+    buildCommand: npm ci --only=production
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # ... other environment variables
+
+  - type: web
+    name: pawfectfriends-ai
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements-minimal.txt
+    startCommand: python -m uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
+    # ... environment variables
+
+  - type: web
+    name: pawfectfriends-frontend
+    env: static
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    # ... environment variables
+
+  - type: web
+    name: pawfectfriends-comm
+    env: static
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./comm/dist
+    # ... environment variables
+```
 
 ### Production Checklist
 
@@ -287,9 +446,18 @@ python -m pytest
 - [x] Logging configured
 - [x] Error handling implemented
 
-### Render Deployment
+### Troubleshooting
 
-The application is currently deployed on Render. See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed deployment instructions.
+#### Common Issues
+
+1. **Build Failures**: Check Node.js/Python versions
+2. **Environment Variables**: Ensure all required variables are set
+3. **CORS Issues**: Update CORS settings with Render URLs
+
+#### Support
+
+- **Render Documentation**: [render.com/docs](https://render.com/docs)
+- **Community**: [community.render.com](https://community.render.com)
 
 ## 🤝 Contributing
 

@@ -51,7 +51,7 @@ services:
     name: pawfectfriends-frontend
     env: static
     plan: free
-    buildCommand: npm install && npm run build:skip-check
+    buildCommand: cd frontend && npm install && npm run build:production
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
