@@ -298,9 +298,6 @@ const App: React.FC = () => {
         />
       </Route>
 
-      {/* Communication Route */}
-      <Route path="/communication" element={<CommunicationPage />} />
-
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
