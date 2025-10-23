@@ -45,11 +45,15 @@ const CommunicationPage: React.FC = () => {
     // Share user data and token with communication app
     if (user) {
       const token = localStorage.getItem("token");
+      
+      // Handle different user data structures
+      const userData = user.data || user; // Handle both {data: {...}} and direct user object
+      
       const authData = {
-        userId: user._id,
-        userName: user.name,
-        userAvatar: user.avatar,
-        userRole: user.role,
+        userId: userData._id || userData.id,
+        userName: userData.name,
+        userAvatar: userData.avatar,
+        userRole: userData.role || user.role,
         token: token, // Include the authentication token
         timestamp: Date.now(),
       };
@@ -65,11 +69,15 @@ const CommunicationPage: React.FC = () => {
   const handleIframeLoad = () => {
     if (user) {
       const token = localStorage.getItem("token");
+      
+      // Handle different user data structures
+      const userData = user.data || user; // Handle both {data: {...}} and direct user object
+      
       const authData = {
-        userId: user._id,
-        userName: user.name,
-        userAvatar: user.avatar,
-        userRole: user.role,
+        userId: userData._id || userData.id,
+        userName: userData.name,
+        userAvatar: userData.avatar,
+        userRole: userData.role || user.role,
         token: token,
         timestamp: Date.now(),
       };

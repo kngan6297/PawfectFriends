@@ -62,6 +62,8 @@ services:
         value: https://pawfectfriends-comm.onrender.com
       - key: VITE_AI_SERVICE_URL
         value: https://pawfectfriends-1.onrender.com
+      - key: VITE_COMMUNICATION_URL
+        value: https://pawfectfriends-comm.onrender.com
 
   - type: web
     name: pawfectfriends-comm
