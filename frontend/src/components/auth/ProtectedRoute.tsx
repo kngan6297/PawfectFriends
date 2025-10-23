@@ -16,6 +16,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+  
+  console.log("🔍 ProtectedRoute - Component mounted");
+  console.log("🔍 ProtectedRoute - Location:", location.pathname);
+  console.log("🔍 ProtectedRoute - User:", user);
+  console.log("🔍 ProtectedRoute - IsAuthenticated:", isAuthenticated);
+  console.log("🔍 ProtectedRoute - IsLoading:", isLoading);
+  console.log("🔍 ProtectedRoute - RequiredRole:", requiredRole);
+  console.log("🔍 ProtectedRoute - AllowedRoles:", allowedRoles);
+  
   const prevAuthState = useRef({
     isAuthenticated,
     isLoading,

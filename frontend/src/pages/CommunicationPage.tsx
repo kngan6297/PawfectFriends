@@ -7,15 +7,30 @@ const CommunicationPage: React.FC = () => {
   const [communicationUrl, setCommunicationUrl] = useState("");
   const [searchParams] = useSearchParams();
 
+  console.log("🔍 CommunicationPage - Component mounted");
+  console.log("🔍 CommunicationPage - User:", user);
+  console.log("🔍 CommunicationPage - Search params:", Object.fromEntries(searchParams.entries()));
+
   useEffect(() => {
+    console.log("🔍 CommunicationPage - useEffect triggered");
+    
     // Set the communication URL based on environment
     let url = import.meta.env.DEV
       ? `http://localhost:${import.meta.env.VITE_COMMUNICATION_PORT || "3000"}`
       : import.meta.env.VITE_COMMUNICATION_URL || "/communication";
 
+    console.log("🔍 CommunicationPage - Base URL:", url);
+    console.log("🔍 CommunicationPage - Environment:", {
+      DEV: import.meta.env.DEV,
+      VITE_COMMUNICATION_PORT: import.meta.env.VITE_COMMUNICATION_PORT,
+      VITE_COMMUNICATION_URL: import.meta.env.VITE_COMMUNICATION_URL
+    });
+
     // Add URL parameters if they exist
     const petId = searchParams.get("petId");
     const shelterId = searchParams.get("shelterId");
+
+    console.log("🔍 CommunicationPage - URL params:", { petId, shelterId });
 
     if (petId || shelterId) {
       const params = new URLSearchParams();
@@ -24,6 +39,7 @@ const CommunicationPage: React.FC = () => {
       url += `?${params.toString()}`;
     }
 
+    console.log("🔍 CommunicationPage - Final URL:", url);
     setCommunicationUrl(url);
 
     // Share user data and token with communication app

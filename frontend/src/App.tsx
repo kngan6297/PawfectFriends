@@ -73,6 +73,8 @@ const ShelterLayoutWrapper: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  console.log("🔍 App.tsx - Component mounted");
+  
   return (
     <Routes>
       {/* Auth Routes */}
