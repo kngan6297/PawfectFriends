@@ -172,7 +172,14 @@ pids
 *key*
 *token*
 *credential*
-*password*
+*password.js
+*password.json
+*password.env
+*password.txt
+*password.key
+*password.pem
+*password.p12
+*password.keystore
 *private*
 
 # Security: Backup files
