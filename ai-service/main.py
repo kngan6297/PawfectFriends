@@ -22,7 +22,12 @@ app = FastAPI(
 )
 
 # Add CORS middleware
-ALLOWED_ORIGINS = ["http://localhost:5173", "https://your-frontend.app"]  # TODO: adjust according to deploy
+ALLOWED_ORIGINS = [
+    "http://localhost:5173", 
+    "https://pawfectfriends.xyz",
+    "https://pawfectfriends-frontend.onrender.com",
+    "https://your-frontend.app"
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
