@@ -174,20 +174,6 @@ api.interceptors.response.use(
   }
 );
 
-// Add a global error handler for authentication failures
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear auth state on 401 errors
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      // The component will handle the redirect when it detects the auth state change
-    }
-    return Promise.reject(error);
-  }
-);
-
 interface AuthContextType {
   user: User | null;
   token: string | null;

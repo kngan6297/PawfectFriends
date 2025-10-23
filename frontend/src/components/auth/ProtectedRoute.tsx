@@ -16,7 +16,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
-  
+
   console.log("🔍 ProtectedRoute - Component mounted");
   console.log("🔍 ProtectedRoute - Location:", location.pathname);
   console.log("🔍 ProtectedRoute - User:", user);
@@ -24,7 +24,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   console.log("🔍 ProtectedRoute - IsLoading:", isLoading);
   console.log("🔍 ProtectedRoute - RequiredRole:", requiredRole);
   console.log("🔍 ProtectedRoute - AllowedRoles:", allowedRoles);
-  
+
   const prevAuthState = useRef({
     isAuthenticated,
     isLoading,
@@ -40,7 +40,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (JSON.stringify(currentState) !== JSON.stringify(prevState)) {
       prevAuthState.current = currentState;
     }
-  }, [isAuthenticated, isLoading, user?.role, location.pathname, requiredRole]);
+  }, [isAuthenticated, isLoading, user?.role]);
 
   if (isLoading) {
     return (
