@@ -4,13 +4,7 @@
     "slug": "pawfect-friends-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -19,15 +13,9 @@
       "bundleIdentifier": "com.pawfectfriends.mobile"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
       "package": "com.pawfectfriends.mobile"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
+    "web": {},
     "plugins": [
       "expo-router"
     ],
@@ -36,7 +24,9 @@
       "router": {
         "origin": false
       },
-      "eas": {}
+      "eas": {
+        "projectId": "5a76b6af-59d6-4476-9fdc-a754daae8b50"
+      }
     }
   }
 }
