@@ -60,6 +60,8 @@ services:
         sync: false
       - key: VITE_COMM_URL
         value: https://pawfectfriends-comm.onrender.com
+      - key: VITE_AI_SERVICE_URL
+        value: https://pawfectfriends-ai.onrender.com
 
   - type: web
     name: pawfectfriends-comm
