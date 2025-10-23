@@ -303,9 +303,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setAuthenticated(false);
             hasLoadedUser.current = true;
             setIsLoading(false);
-            // Redirect to home instead of login for backend reset
-
-            navigate("/", { replace: true });
+            // Don't redirect - just clear auth state and let the component handle the redirect
+            // The redirect will be handled by the useEffect that watches isAuthenticated
             // Clear the flag after a short delay
             setTimeout(() => {
               localStorage.removeItem("handlingBackendReset");
