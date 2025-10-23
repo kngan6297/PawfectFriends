@@ -76,3 +76,9 @@ services:
         sync: false
       - key: VITE_API_URL
         value: https://pawfectfriends-backend.onrender.com
+      - key: VITE_API_BASE_URL
+        value: https://pawfectfriends-backend.onrender.com/api
+      - key: VITE_MAIN_APP_URL
+        value: https://pawfectfriends.xyz
+      - key: VITE_WS_URL
+        value: wss://pawfectfriends-backend.onrender.com
