@@ -107,6 +107,16 @@ export const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [profileData, setProfileData] = useState<any>(null);
 
+  // Debug profileData state changes
+  useEffect(() => {
+    console.log("🐾 ProfilePage - profileData state updated:", profileData);
+    if (profileData) {
+      console.log("🐾 ProfilePage - profileData.name:", profileData.name);
+      console.log("🐾 ProfilePage - profileData.emailVerified:", profileData.emailVerified);
+      console.log("🐾 ProfilePage - profileData.createdAt:", profileData.createdAt);
+    }
+  }, [profileData]);
+
   // Province API state
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
@@ -182,6 +192,12 @@ export const ProfilePage: React.FC = () => {
 
         if (profileData && isMounted) {
           console.log("🐾 ProfilePage - Fresh profile data:", profileData);
+          console.log("🐾 ProfilePage - Profile data keys:", Object.keys(profileData));
+          console.log("🐾 ProfilePage - Name:", profileData.name);
+          console.log("🐾 ProfilePage - Email:", profileData.email);
+          console.log("🐾 ProfilePage - EmailVerified:", profileData.emailVerified);
+          console.log("🐾 ProfilePage - CreatedAt:", profileData.createdAt);
+          console.log("🐾 ProfilePage - Avatar:", profileData.avatar);
           
           // Store profile data in state for profile overview section
           setProfileData(profileData);
