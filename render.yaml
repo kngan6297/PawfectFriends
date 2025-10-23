@@ -55,15 +55,15 @@ services:
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://pawfectfriends.onrender.com
+        value: https://api.pawfectfriends.xyz
       - key: VITE_ZEGO_APP_ID
         sync: false
       - key: VITE_COMM_URL
-        value: https://pawfectfriends-81t1.onrender.com
+        value: https://chat.pawfectfriends.xyz
       - key: VITE_AI_SERVICE_URL
-        value: https://pawfectfriends-1.onrender.com
+        value: https://ai.pawfectfriends.xyz
       - key: VITE_COMMUNICATION_URL
-        value: https://pawfectfriends-81t1.onrender.com
+        value: https://chat.pawfectfriends.xyz
 
   - type: web
     name: pawfectfriends-comm
@@ -75,10 +75,10 @@ services:
       - key: VITE_ZEGO_APP_ID
         sync: false
       - key: VITE_API_URL
-        value: https://pawfectfriends.onrender.com
+        value: https://api.pawfectfriends.xyz
       - key: VITE_API_BASE_URL
-        value: https://pawfectfriends.onrender.com/api
+        value: https://api.pawfectfriends.xyz
       - key: VITE_MAIN_APP_URL
         value: https://pawfectfriends.xyz
       - key: VITE_WS_URL
-        value: wss://pawfectfriends.onrender.com
+        value: wss://api.pawfectfriends.xyz
