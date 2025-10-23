@@ -118,10 +118,10 @@ export const ProfilePage: React.FC = () => {
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: user?.name || "",
-      email: user?.email || "",
-      phone: user?.phone || "",
-      bio: user?.bio || "",
+      name: "",
+      email: "",
+      phone: "",
+      bio: "",
     },
   });
 
@@ -174,9 +174,13 @@ export const ProfilePage: React.FC = () => {
     const fetchProfile = async () => {
       try {
         setIsProfileLoading(true);
-        // Use the user data from AuthContext instead of making another API call
-        if (user && isMounted) {
-          const profileData = user;
+
+        // Make a fresh API call to get complete profile data like Dashboard does
+        const profileResponse = await userApi.getProfile();
+        const profileData = profileResponse.data?.data || profileResponse.data;
+
+        if (profileData && isMounted) {
+          console.log("🐾 ProfilePage - Fresh profile data:", profileData);
 
           // Update form defaults
           profileForm.reset({
@@ -186,23 +190,37 @@ export const ProfilePage: React.FC = () => {
             bio: profileData.bio || "",
           });
 
-          // Handle address data - convert from AddressSchema format to form format
+          // Handle address data - convert from backend AddressSchema format to form format
           const location = profileData.location;
           console.log("🐾 ProfilePage - Location data:", location);
 
           const addressData = {
-            street: location?.address || "",
-            ward: undefined, // These properties don't exist in the Location interface
-            district: undefined,
-            province: undefined,
-            country: "Vietnam",
+            street: location?.details?.street || "",
+            ward: location?.ward
+              ? {
+                  code: location.ward.code,
+                  name: location.ward.name,
+                }
+              : undefined,
+            district: location?.district
+              ? {
+                  code: location.district.code,
+                  name: location.district.name,
+                }
+              : undefined,
+            province: location?.province
+              ? {
+                  code: location.province.code,
+                  name: location.province.name,
+                }
+              : undefined,
+            country: location?.country || "Vietnam",
           };
 
           console.log("🐾 ProfilePage - Address data for form:", addressData);
 
           // If user has existing address data, load the corresponding districts and wards first
-          if (false) {
-            // Disabled since province property doesn't exist in Location interface
+          if (addressData.province) {
             console.log(
               "🐾 ProfilePage - Loading districts for province:",
               addressData.province.code
@@ -261,7 +279,7 @@ export const ProfilePage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [user?.name, user?.email, profileForm, addressForm]);
+  }, [profileForm, addressForm]);
 
   const handleProfileSubmit = async (data: ProfileFormData) => {
     try {

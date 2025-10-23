@@ -3,9 +3,35 @@ import { Pet } from "./pet";
 export type UserRole = "user" | "shelter" | "admin";
 
 export interface Location {
-  address: string;
-  type: "Point";
-  coordinates: [number, number];
+  version?: string;
+  province?: {
+    code: number;
+    name: string;
+    codename?: string;
+    division_type?: string;
+    phone_code?: number;
+  };
+  district?: {
+    code: number;
+    name: string;
+    codename?: string;
+    division_type?: string;
+    province_code: number;
+  };
+  ward?: {
+    code: number;
+    name: string;
+    codename?: string;
+    division_type?: string;
+    district_code: number;
+  };
+  details?: {
+    street?: string;
+    note?: string;
+  };
+  postalCode?: string;
+  country?: string;
+  formatted?: string;
 }
 
 export interface UserPreferences {
