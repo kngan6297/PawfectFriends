@@ -84,9 +84,6 @@ export default function PublicSearchScreen() {
   const fetchPage = useCallback(
     async (p: number, q = query, s = species, replace = false) => {
       if (loading) {
-        if (__DEV__) {
-          console.log("Already loading, skipping fetchPage");
-        }
         return;
       }
 
@@ -96,15 +93,6 @@ export default function PublicSearchScreen() {
       try {
         setLoading(true);
         setError(null);
-
-        if (__DEV__) {
-          console.log("Search params:", {
-            query: q,
-            species: s,
-            page: p,
-            requestId: currentRequestId,
-          });
-        }
 
         // Build search parameters - exclude type field when species is "all"
         const searchParams: {
@@ -121,11 +109,6 @@ export default function PublicSearchScreen() {
         // Only add type field if species is not "all"
         if (s !== "all") {
           searchParams.type = s; // Direct mapping: dog -> "dog", cat -> "cat", other -> "other"
-        }
-
-        if (__DEV__) {
-          console.log("API search parameters:", searchParams);
-          console.log("Species value being sent:", s);
         }
 
         // Try search API first

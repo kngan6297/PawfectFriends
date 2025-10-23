@@ -57,9 +57,6 @@ class ApiService {
 
     async post<T = any>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
         try {
-            console.log("🔔 API Service POST - URL:", url);
-            console.log("🔔 API Service POST - Data:", JSON.stringify(data, null, 2));
-
             // If data is FormData, don't set Content-Type header to let browser set it with boundary
             if (data instanceof FormData) {
                 const response = await this.api.post(url, data, {

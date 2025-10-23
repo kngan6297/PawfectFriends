@@ -94,8 +94,6 @@ export default function PublicHomeScreen() {
       setLoading(true);
       const f1 = await petService.getLatestPets(8);
 
-      console.log("Featured response:", f1);
-
       if (f1.success && f1.data) setFeatured(f1.data);
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     } catch (e) {
