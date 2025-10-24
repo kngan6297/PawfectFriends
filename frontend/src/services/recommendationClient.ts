@@ -7,14 +7,42 @@ import { getTopRecommendations } from "@/utils/matchScoring";
 // CONSTANTS
 // ============================================================================
 
+// Get AI service URL with fallback logic
+const getAIServiceURL = () => {
+    const envUrl = import.meta.env.VITE_AI_SERVICE_URL;
+    
+    // If environment variable is set, use it
+    if (envUrl) {
+        return envUrl;
+    }
+    
+    // Fallback: detect production environment and use production AI service URL
+    if (import.meta.env.PROD || window.location.hostname.includes('pawfectfriends.xyz')) {
+        return 'https://ai.pawfectfriends.xyz';
+    }
+    
+    // Default to localhost for development
+    return 'http://localhost:8000';
+};
+
 const CONSTANTS = {
-    BASE_URL: import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000',
+    BASE_URL: getAIServiceURL(),
     TIMEOUT_MS: parseInt(import.meta.env.VITE_AI_SERVICE_TIMEOUT || '10000'),
     TOP_K: parseInt(import.meta.env.VITE_TOP_K_DEFAULT || '6'),
     DEFAULT_LIMIT: 5,
     APP_VERSION: import.meta.env.VITE_APP_VERSION || '1.0.0',
     MAX_RETRIES: 1, // Only retry once for network/timeout errors
 } as const;
+
+// Debug AI service configuration
+console.log('🤖 AI Service Configuration:', {
+    VITE_AI_SERVICE_URL: import.meta.env.VITE_AI_SERVICE_URL,
+    detectedURL: getAIServiceURL(),
+    BASE_URL: CONSTANTS.BASE_URL,
+    isProduction: import.meta.env.PROD,
+    environment: import.meta.env.MODE,
+    hostname: window.location.hostname
+});
 
 // ============================================================================
 // ERROR SHAPING
@@ -376,12 +404,15 @@ export const recommendationClient = {
      * Check if AI service is available
      */
     async checkHealth(): Promise<boolean> {
+        const healthUrl = `${CONSTANTS.BASE_URL}/health`;
+        console.log(`🤖 [AI Service] Starting health check for: ${healthUrl}`);
+        
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
 
             // Try a simple GET request to see if the service responds
-            const response = await fetch(`${CONSTANTS.BASE_URL}/health`, {
+            const response = await fetch(healthUrl, {
                 method: 'GET',
                 signal: controller.signal,
                 mode: 'cors', // Explicitly set CORS mode
@@ -395,7 +426,7 @@ export const recommendationClient = {
             clearTimeout(timeoutId);
 
             // Log the response for debugging
-            console.log('[AI Service] Health check response:', {
+            console.log('🤖 [AI Service] Health check response:', {
                 status: response.status,
                 statusText: response.statusText,
                 ok: response.ok,
@@ -407,22 +438,29 @@ export const recommendationClient = {
             if (response.ok) {
                 try {
                     const data = await response.json();
-                    console.log('[AI Service] Health check data:', data);
-                    return data.status === 'OK';
+                    console.log('🤖 [AI Service] Health check data:', data);
+                    const isHealthy = data.status === 'OK';
+                    console.log(`🤖 [AI Service] Health check result: ${isHealthy ? 'HEALTHY' : 'UNHEALTHY'}`);
+                    return isHealthy;
                 } catch (jsonError) {
-                    console.warn('[AI Service] Failed to parse health check response:', jsonError);
+                    console.warn('🤖 [AI Service] Failed to parse health check response:', jsonError);
+                    console.log('🤖 [AI Service] Assuming healthy due to 200 response');
                     return true; // If we got a 200 response, service is likely OK
                 }
             }
 
+            console.warn(`🤖 [AI Service] Health check failed with status: ${response.status}`);
             return false;
         } catch (error) {
-            console.warn('[AI Service] Health check failed:', error);
+            console.warn('🤖 [AI Service] Health check failed:', error);
 
             // If CORS error, try a different approach - check if we can reach the service
             if (error instanceof TypeError && error.message.includes('CORS')) {
-                console.log('[AI Service] CORS error detected, trying alternative health check...');
+                console.log('🤖 [AI Service] CORS error detected, trying alternative health check...');
                 try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    
                     // Try to make a simple request to the ping endpoint
                     const fallbackResponse = await fetch(`${CONSTANTS.BASE_URL}/ping`, {
                         method: 'GET',
@@ -430,16 +468,19 @@ export const recommendationClient = {
                         mode: 'no-cors', // Use no-cors mode as fallback
                     });
 
+                    clearTimeout(timeoutId);
+
                     // With no-cors mode, we can't read the response, but if no error is thrown,
                     // the service is likely reachable
-                    console.log('[AI Service] Fallback health check succeeded (no-cors mode)');
+                    console.log('🤖 [AI Service] Fallback health check succeeded (no-cors mode)');
                     return true;
                 } catch (fallbackError) {
-                    console.warn('[AI Service] Fallback health check also failed:', fallbackError);
+                    console.warn('🤖 [AI Service] Fallback health check also failed:', fallbackError);
                     return false;
                 }
             }
 
+            console.warn('🤖 [AI Service] Health check failed with error:', error instanceof Error ? error.message : String(error));
             return false;
         }
     },
