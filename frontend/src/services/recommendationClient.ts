@@ -373,24 +373,57 @@ interface AIRecommendationResponse {
 
 export const recommendationClient = {
     /**
- * Check if AI service is available
- */
+     * Check if AI service is available
+     */
     async checkHealth(): Promise<boolean> {
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
 
             // Try a simple GET request to see if the service responds
-            const response = await fetch(`${CONSTANTS.BASE_URL}/`, {
+            const response = await fetch(`${CONSTANTS.BASE_URL}/health`, {
                 method: 'GET',
                 signal: controller.signal,
+                mode: 'cors', // Explicitly set CORS mode
+                credentials: 'omit', // Don't send credentials for health check
             });
 
             clearTimeout(timeoutId);
-            // If we get any response, the service is running
-            return response.status !== 404;
+
+            // Log the response for debugging
+            console.log('[AI Service] Health check response:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok,
+                url: response.url
+            });
+
+            // If we get any successful response (2xx), the service is running
+            return response.ok;
         } catch (error) {
             console.warn('[AI Service] Health check failed:', error);
+
+            // If CORS error, try a different approach - check if we can reach the service
+            if (error instanceof TypeError && error.message.includes('CORS')) {
+                console.log('[AI Service] CORS error detected, trying alternative health check...');
+                try {
+                    // Try to make a simple request to the root endpoint
+                    const fallbackResponse = await fetch(`${CONSTANTS.BASE_URL}/`, {
+                        method: 'GET',
+                        signal: controller.signal,
+                        mode: 'no-cors', // Use no-cors mode as fallback
+                    });
+
+                    // With no-cors mode, we can't read the response, but if no error is thrown,
+                    // the service is likely reachable
+                    console.log('[AI Service] Fallback health check succeeded (no-cors mode)');
+                    return true;
+                } catch (fallbackError) {
+                    console.warn('[AI Service] Fallback health check also failed:', fallbackError);
+                    return false;
+                }
+            }
+
             return false;
         }
     },

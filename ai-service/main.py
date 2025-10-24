@@ -26,8 +26,11 @@ ALLOWED_ORIGINS = [
     "http://localhost:5173", 
     "https://pawfectfriends.xyz",
     "https://pawfectfriends-frontend.onrender.com",
-    "https://your-frontend.app"
+    "https://your-frontend.app",
+    "https://pawfectfriends.netlify.app",  # Add Netlify deployment
+    "https://pawfectfriends.vercel.app",   # Add Vercel deployment
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -260,6 +263,11 @@ async def health_check():
         "version": "1.0.0",
         "environment": "production"
     }
+
+@app.get("/ping")
+async def ping():
+    """Simple ping endpoint for health checks without CORS issues"""
+    return {"pong": True, "timestamp": datetime.now().isoformat()}
 
 @app.post("/api/validate-request")
 async def validate_request(request: Dict[str, Any]):
