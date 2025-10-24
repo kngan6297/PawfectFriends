@@ -150,17 +150,11 @@ const getApiBaseUrl = () => {
         endsWithApi: baseUrl.endsWith('/api')
     });
 
-    // In production, ensure the URL ends with /api
+    // In production, the backend service handles routes starting with /api
     if (baseUrl.includes('api.pawfectfriends.xyz')) {
-        // If it already ends with /api, don't add another one
-        if (baseUrl.endsWith('/api')) {
-            console.log('🔧 Using existing /api URL:', baseUrl);
-            return baseUrl;
-        }
-        // If it doesn't end with /api, add it
-        const result = `${baseUrl}/api`;
-        console.log('🔧 Adding /api to URL:', result);
-        return result;
+        // For api.pawfectfriends.xyz, don't add /api since the backend routes are already mounted at /api
+        console.log('🔧 Using production URL without adding /api:', baseUrl);
+        return baseUrl;
     }
 
     // For local development, add /api if not present
