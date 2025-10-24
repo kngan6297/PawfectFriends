@@ -315,7 +315,11 @@ export const AiRecommendationsPage: React.FC<
       }
 
       // Smart pre-filtering: Include more pets for variety while prioritizing preferences
-      let petsToSend = pets;
+      // First filter out non-adoptable pets (pending, adopted, etc.)
+      const adoptablePets = pets.filter((p) => p.status === "adoptable");
+      console.log(`Filtered ${adoptablePets.length} adoptable pets out of ${pets.length} total pets`);
+
+      let petsToSend = adoptablePets;
 
       // Smart species filtering - prioritize all selected species
       const preferredSpeciesSet = new Set(
@@ -325,7 +329,7 @@ export const AiRecommendationsPage: React.FC<
       );
 
       if (preferredSpeciesSet.size > 0) {
-        const preferred = pets.filter((p) =>
+        const preferred = adoptablePets.filter((p) =>
           preferredSpeciesSet.has(p.type?.toLowerCase() || "")
         );
         let petsToSend = preferred;
@@ -333,7 +337,7 @@ export const AiRecommendationsPage: React.FC<
         console.log(
           `Found ${preferred.length} pets of preferred species [${Array.from(
             preferredSpeciesSet
-          ).join(", ")}] out of ${pets.length} total`
+          ).join(", ")}] out of ${adoptablePets.length} adoptable pets`
         );
 
         // If we have very few pets of preferred species, include some other species for variety
@@ -345,7 +349,7 @@ export const AiRecommendationsPage: React.FC<
           );
 
           // Get a few pets from other species to add variety (but still heavily penalize them in scoring)
-          const others = pets
+          const others = adoptablePets
             .filter(
               (p) => !preferredSpeciesSet.has(p.type?.toLowerCase() || "")
             )
@@ -362,8 +366,8 @@ export const AiRecommendationsPage: React.FC<
           petsToSend = preferred;
           console.log(
             `Species-filtered pets: ${petsToSend.length} out of ${
-              pets.length
-            } match species preferences [${Array.from(preferredSpeciesSet).join(
+              adoptablePets.length
+            } adoptable pets match species preferences [${Array.from(preferredSpeciesSet).join(
               ", "
             )}]`
           );
