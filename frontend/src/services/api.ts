@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { Pet } from "@/types/pet";
-import { AdoptionRequest as Adoption } from "@/types/adoption";
+import { AdoptionRequest as AdoptionRequestType } from "@/types/adoption";
 
 export const endpoints = {
     pets: {
@@ -644,7 +644,7 @@ interface AdoptionFinalDecision {
     conditions?: string[];
 }
 
-interface Adoption {
+interface Adoption extends AdoptionRequestType {
     id: string;
     user: string;
     pet: string;
