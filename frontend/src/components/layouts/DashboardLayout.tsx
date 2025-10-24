@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -52,11 +52,38 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   title,
   subtitle,
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUserProfile } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [isRefreshingProfile, setIsRefreshingProfile] = useState(false);
+
+  // Debug user data
+  console.log("DashboardLayout - User data:", user);
+
+  // Refresh user profile if name or email is missing
+  useEffect(() => {
+    if (user && (!user.name || !user.email)) {
+      console.log(
+        "DashboardLayout - User data incomplete, refreshing profile..."
+      );
+      setIsRefreshingProfile(true);
+      refreshUserProfile(true)
+        .then(() => {
+          console.log("DashboardLayout - Profile refreshed successfully");
+        })
+        .catch((error) => {
+          console.error(
+            "DashboardLayout - Failed to refresh user profile:",
+            error
+          );
+        })
+        .finally(() => {
+          setIsRefreshingProfile(false);
+        });
+    }
+  }, [user, refreshUserProfile]);
 
   const userRole = role || user?.role;
 
@@ -474,14 +501,24 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <div className="flex items-center">
                 <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
                   <span className="text-sm font-medium text-blue-600">
-                    {user?.name?.[0] || "U"}
+                    {user?.name?.[0] || user?.email?.[0] || "U"}
                   </span>
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-gray-800">
-                    {getDashboardSubtitle()}
+                    {isRefreshingProfile ? (
+                      <span className="text-gray-400">Loading...</span>
+                    ) : (
+                      user?.name || user?.email || "User"
+                    )}
                   </p>
-                  <p className="text-xs text-gray-500">{user?.email}</p>
+                  <p className="text-xs text-gray-500">
+                    {isRefreshingProfile ? (
+                      <span className="text-gray-400">Loading...</span>
+                    ) : (
+                      user?.email || "No email"
+                    )}
+                  </p>
                 </div>
               </div>
               <Button
