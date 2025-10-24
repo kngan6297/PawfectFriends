@@ -52,7 +52,12 @@ const getApiBaseUrl = () => {
     const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
     
     // In production, ensure the URL ends with /api
-    if (baseUrl.includes('api.pawfectfriends.xyz') && !baseUrl.endsWith('/api')) {
+    if (baseUrl.includes('api.pawfectfriends.xyz')) {
+        // If it already ends with /api, don't add another one
+        if (baseUrl.endsWith('/api')) {
+            return baseUrl;
+        }
+        // If it doesn't end with /api, add it
         return `${baseUrl}/api`;
     }
     
