@@ -382,7 +382,19 @@ onMounted(() => {
         // Received message from parent
         
         if (event.data && event.data.type === 'PAWFECT_AUTH_DATA') {
-            // Store the auth data in localStorage
+            // Clear any existing auth data first to prevent conflicts
+            console.log('🧹 Clearing old auth data before processing new auth data');
+            localStorage.removeItem('pawfect-friends-auth');
+            sessionStorage.removeItem('ZIMDEMOUSER');
+            
+            // Clear any existing ZIM session to prevent "User has already logged in" error
+            if (zimStore.isLogged) {
+                console.log('🚪 Logging out existing ZIM session');
+                zimStore.logout(false);
+                isLogged.value = false;
+            }
+            
+            // Store the new auth data in localStorage
             localStorage.setItem('pawfect-friends-auth', JSON.stringify(event.data.data));
             
             // Convert to ZIM user format and login
@@ -422,9 +434,12 @@ onMounted(() => {
     // Add message listener
     window.addEventListener('message', handleMessage);
     
-    // Check for existing auth data
-    if (authService.isAuthenticated()) {
-        // Found existing authentication, auto-logging in
+    // Check for existing auth data - but only if we're not in an iframe context
+    // In iframe context, we should wait for auth data from parent window
+    const isInIframe = window !== window.parent;
+    
+    if (!isInIframe && authService.isAuthenticated()) {
+        // Found existing authentication, auto-logging in (only when not in iframe)
         
         // Get auth data and login to ZIM
         const authDataStr = localStorage.getItem('pawfect-friends-auth');
@@ -466,7 +481,8 @@ onMounted(() => {
             // No existing auth data, don't set logged state
         }
     } else {
-        // No existing authentication found, waiting for parent message
+        // No existing authentication found or in iframe context, waiting for parent message
+        console.log('🔄 Waiting for auth data from parent window (iframe context)');
     }
     
     // Cleanup listener on unmount
