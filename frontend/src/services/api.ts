@@ -9,6 +9,15 @@ export const endpoints = {
         search: "/pets/search",
         similar: (id: string) => `/pets/${id}/similar`,
         latest: "/pets/latest",
+        toggleFavorite: (id: string) => `/pets/${id}/toggle-favorite`,
+        favoriteCheck: (id: string) => `/pets/${id}/favorite/check`,
+        getById: (id: string) => `/pets/${id}`,
+        shelterStats: "/pets/shelter/stats",
+        shelterPets: "/pets/shelter/pets",
+        delete: (petId: string) => `/pets/${petId}`,
+        update: (petId: string) => `/pets/${petId}`,
+        updateStatus: (petId: string) => `/pets/${petId}/status`,
+        create: "/pets",
     },
     user: {
         favorites: "/users/favorite-pets",
@@ -18,12 +27,27 @@ export const endpoints = {
         location: "/users/location",
         viewedPets: "/users/viewed-pets",
         shelters: "/users/shelters",
+        changePassword: "/users/change-password",
+        updateAddress: "/users/profile/address",
+        updateSecuritySettings: "/users/profile/security",
+        avatar: "/users/avatar",
+        addViewedPet: (petId: string) => `/users/viewed-pets/${petId}`,
+        toggleFavorite: (petId: string) => `/users/favorite-pets/${petId}`,
     },
     shelter: {
         profile: (id: string) => `/shelters/${id}`,
         incrementViews: (id: string) => `/shelters/${id}/view`,
         stats: "/shelters/dashboard/stats",
         dashboard: "/shelters/dashboard/overview",
+        analytics: "/shelters/dashboard/analytics",
+        trends: "/shelters/dashboard/trends",
+        ratesByAttributes: "/shelters/dashboard/rates-by-attributes",
+        timeToAdoption: "/shelters/dashboard/time-to-adoption",
+        detailedTrends: "/shelters/dashboard/detailed-trends",
+        rejectionReasons: "/shelters/dashboard/analytics/rejection-reasons",
+        reports: "/shelters/dashboard/reports",
+        calendar: "/shelter/calendar",
+        list: "/shelters",
     },
     notification: {
         list: "/notifications",
@@ -60,6 +84,58 @@ export const endpoints = {
         uploadDocument: (id: string) => `/adoptions/${id}/documents`,
         verifyDocument: (id: string, documentId: string) => `/adoptions/${id}/documents/${documentId}`,
         deleteDocument: (id: string, documentId: string) => `/adoptions/${id}/documents/${documentId}`,
+        // Workflow methods
+        evaluate: (id: string) => `/adoptions/${id}/evaluate`,
+        interviewResults: (id: string) => `/adoptions/${id}/interview-results`,
+        homeVisitResults: (id: string) => `/adoptions/${id}/home-visit-results`,
+        approve: (id: string) => `/adoptions/${id}/approve`,
+        contractGenerate: (id: string) => `/adoptions/${id}/contract/generate`,
+        contractFile: (id: string) => `/adoptions/${id}/contract/file`,
+        contractSign: (id: string) => `/adoptions/${id}/contract/sign`,
+        contractSend: (id: string) => `/adoptions/${id}/contract/send`,
+        handoverComplete: (id: string) => `/adoptions/${id}/handover/complete`,
+        complete: (id: string) => `/adoptions/${id}/complete`,
+        postAdoptionFollowUp: (id: string) => `/adoptions/${id}/post-adoption-follow-up`,
+        followUpComplete: (id: string, followUpId: string) => `/adoptions/${id}/follow-up/${followUpId}/complete`,
+        // Meeting methods
+        meetings: (id: string) => `/adoptions/${id}/meetings`,
+        meetingUpdate: (id: string, meetingId: string) => `/adoptions/${id}/meetings/${meetingId}`,
+        meetingReschedule: (id: string, meetingId: string) => `/adoptions/${id}/meetings/${meetingId}/reschedule`,
+        // User-specific methods
+        userDetails: (requestId: string) => `/adoptions/${requestId}/user-details`,
+        userMeetings: (requestId: string) => `/adoptions/${requestId}/user-meetings`,
+        userInformationRequests: (requestId: string) => `/adoptions/${requestId}/user-information-requests`,
+        // Information request methods
+        informationRequest: (id: string) => `/adoptions/${id}/information-request`,
+        informationResponse: (id: string) => `/adoptions/${id}/information-response`,
+        informationRequests: (id: string) => `/adoptions/${id}/information-requests`,
+        informationRequestReminder: (id: string) => `/adoptions/${id}/information-request-reminder`,
+        informationRequestReview: (id: string, requestId: string) => `/adoptions/${id}/information-request/${requestId}`,
+        informationRequestDelete: (id: string, requestId: string) => `/adoptions/${id}/information-request/${requestId}`,
+        // Contract document methods
+        contractDocuments: (id: string) => `/adoptions/${id}/contract-documents`,
+        contractDocumentDelete: (id: string, documentId: string) => `/adoptions/${id}/contract-documents/${documentId}`,
+        // Shelter methods
+        shelter: "/adoptions/shelter",
+        shelterMeetings: "/adoptions/shelter/meetings",
+        // Other methods
+        handover: (id: string) => `/adoptions/${id}/handover`,
+        decision: (id: string) => `/adoptions/${id}/decision`,
+        followUp: (id: string) => `/adoptions/${id}/follow-up`,
+        reminders: (requestId: string) => `/adoptions/${requestId}/reminders`,
+    },
+    meetings: {
+        reminders: (meetingId: string) => `/meetings/${meetingId}/reminders`,
+    },
+    reminders: {
+        delete: (reminderId: string) => `/reminders/${reminderId}`,
+    },
+    reviews: {
+        shelterReviews: (shelterId: string) => `/reviews/shelters/${shelterId}/reviews`,
+        respond: (reviewId: string) => `/reviews/${reviewId}/response`,
+    },
+    rtc: {
+        base: "/rtc",
     }
 } as const;
 
@@ -393,15 +469,15 @@ export const petApi = {
     },
 
     toggleFavorite: async (id: string) => {
-        return api.patch(`/api/pets/${id}/toggle-favorite`);
+        return api.patch(endpoints.pets.toggleFavorite(id));
     },
 
     checkFavoriteStatus: async (id: string) => {
-        return api.get(`/api/pets/${id}/favorite/check`);
+        return api.get(endpoints.pets.favoriteCheck(id));
     },
 
     getById: async (id: string): Promise<Pet> => {
-        const response = await api.get(`/api/pets/${id}`);
+        const response = await api.get(endpoints.pets.getById(id));
         if (!response.data?.success || !response.data?.data) {
             throw new Error("Pet not found");
         }
@@ -413,17 +489,17 @@ export const petApi = {
 
     // Shelter-specific methods
     getShelterStats: async () => {
-        const response = await api.get('/api/pets/shelter/stats');
+        const response = await api.get(endpoints.pets.shelterStats);
         return response;
     },
 
     getShelterDashboard: async () => {
-        const response = await api.get('/api/shelters/dashboard/overview');
+        const response = await api.get(endpoints.shelter.dashboard);
         return response;
     },
 
     getShelterAnalytics: async (period = '30d') => {
-        const response = await api.get('/api/shelters/dashboard/analytics', {
+        const response = await api.get(endpoints.shelter.analytics, {
             params: { period }
         });
         return response;
@@ -435,7 +511,7 @@ export const petApi = {
         groupBy?: 'day' | 'week' | 'month';
         period?: '7d' | '30d' | '90d' | '1y';
     } = {}) => {
-        const response = await api.get('/api/shelters/dashboard/trends', {
+        const response = await api.get(endpoints.shelter.trends, {
             params: filters
         });
         return response;
@@ -446,7 +522,7 @@ export const petApi = {
         endDate?: string;
         period?: '7d' | '30d' | '90d' | '1y';
     } = {}) => {
-        const response = await api.get('/api/shelters/dashboard/rates-by-attributes', {
+        const response = await api.get(endpoints.shelter.ratesByAttributes, {
             params: filters
         });
         return response;
@@ -457,7 +533,7 @@ export const petApi = {
         endDate?: string;
         period?: '7d' | '30d' | '90d' | '1y';
     } = {}) => {
-        const response = await api.get('/api/shelters/dashboard/time-to-adoption', {
+        const response = await api.get(endpoints.shelter.timeToAdoption, {
             params: filters
         });
         return response;
@@ -469,7 +545,7 @@ export const petApi = {
         groupBy?: 'day' | 'week' | 'month';
         period?: '7d' | '30d' | '90d' | '1y';
     } = {}) => {
-        const response = await api.get('/api/shelters/dashboard/detailed-trends', {
+        const response = await api.get(endpoints.shelter.detailedTrends, {
             params: filters
         });
         return response;
@@ -480,21 +556,21 @@ export const petApi = {
         endDate?: string;
         period?: '7d' | '30d' | '90d' | '1y';
     } = {}) => {
-        const response = await api.get('/api/shelters/dashboard/analytics/rejection-reasons', {
+        const response = await api.get(endpoints.shelter.rejectionReasons, {
             params: filters
         });
         return response;
     },
 
     getDetailedReports: async (reportType: string, startDate?: string, endDate?: string) => {
-        const response = await api.get('/api/shelters/dashboard/reports', {
+        const response = await api.get(endpoints.shelter.reports, {
             params: { reportType, startDate, endDate }
         });
         return response;
     },
 
     getShelterPets: async () => {
-        const response = await api.get('/api/pets/shelter/pets', {
+        const response = await api.get(endpoints.pets.shelterPets, {
             params: {
                 limit: 1000, // Request all pets (or a very high number)
                 page: 1
@@ -504,17 +580,17 @@ export const petApi = {
     },
 
     getAdoptionRequests: async (params: { status?: string } = {}) => {
-        const response = await api.get('/api/adoptions/shelter', { params });
+        const response = await api.get(endpoints.adoptions.shelter, { params });
         return response;
     },
 
     deletePet: async (petId: string) => {
-        const response = await api.delete(`/api/pets/${petId}`);
+        const response = await api.delete(endpoints.pets.delete(petId));
         return response;
     },
 
     updatePet: async (petId: string, data: FormData) => {
-        const response = await api.put(`/api/pets/${petId}`, data, {
+        const response = await api.put(endpoints.pets.update(petId), data, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -527,22 +603,22 @@ export const petApi = {
         rejectionReason?: string;
         rejectionDetails?: string;
     }) => {
-        const response = await api.patch(`/api/adoptions/${requestId}`, data);
+        const response = await api.patch(endpoints.adoptions.updateStatus(requestId), data);
         return response;
     },
 
     sendReminder: async (requestId: string) => {
-        const response = await api.post(`/api/adoptions/${requestId}/reminders`);
+        const response = await api.post(endpoints.adoptions.reminders(requestId));
         return response;
     },
 
     updatePetStatus: async (petId: string, status: string) => {
-        const response = await api.patch(`/api/pets/${petId}/status`, { status });
+        const response = await api.patch(endpoints.pets.updateStatus(petId), { status });
         return response;
     },
 
     createPet: async (data: FormData) => {
-        const response = await api.post('/api/pets', data, {
+        const response = await api.post(endpoints.pets.create, data, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -551,27 +627,27 @@ export const petApi = {
     },
 
     scheduleMeeting: async (requestId: string, meetingData: any) => {
-        const response = await api.post(`/api/adoptions/${requestId}/meetings`, meetingData);
+        const response = await api.post(endpoints.adoptions.meetings(requestId), meetingData);
         return response;
     },
 
     updateMeetingStatus: async (requestId: string, meetingId: string, status: string, notes?: string) => {
-        const response = await api.patch(`/api/adoptions/${requestId}/meetings/${meetingId}`, { status, notes });
+        const response = await api.patch(endpoints.adoptions.meetingUpdate(requestId, meetingId), { status, notes });
         return response;
     },
 
     getAdoptionRequestMeetings: async (requestId: string) => {
-        const response = await api.get(`/api/adoptions/${requestId}/meetings`);
+        const response = await api.get(endpoints.adoptions.meetings(requestId));
         return response;
     },
 
     getAllShelterMeetings: async (params: { startDate?: string; endDate?: string; status?: string } = {}) => {
-        const response = await api.get('/api/adoptions/shelter/meetings', { params });
+        const response = await api.get(endpoints.adoptions.shelterMeetings, { params });
         return response;
     },
 
     rescheduleMeeting: async (requestId: string, meetingId: string, newDate: string, newLocation?: string, reason?: string) => {
-        const response = await api.patch(`/api/adoptions/${requestId}/meetings/${meetingId}/reschedule`, {
+        const response = await api.patch(endpoints.adoptions.meetingReschedule(requestId, meetingId), {
             scheduledDate: newDate,
             location: newLocation,
             reason: reason,
@@ -580,32 +656,32 @@ export const petApi = {
     },
 
     createMeetingReminder: async (meetingId: string, reminderData: any) => {
-        const response = await api.post(`/api/meetings/${meetingId}/reminders`, reminderData);
+        const response = await api.post(endpoints.meetings.reminders(meetingId), reminderData);
         return response;
     },
 
     getMeetingReminders: async (meetingId: string) => {
-        const response = await api.get(`/api/meetings/${meetingId}/reminders`);
+        const response = await api.get(endpoints.meetings.reminders(meetingId));
         return response;
     },
 
     deleteMeetingReminder: async (reminderId: string) => {
-        const response = await api.delete(`/api/reminders/${reminderId}`);
+        const response = await api.delete(endpoints.reminders.delete(reminderId));
         return response;
     },
 
     getShelterCalendar: async (params: { month?: number; year?: number } = {}) => {
-        const response = await api.get('/api/shelter/calendar', { params });
+        const response = await api.get(endpoints.shelter.calendar, { params });
         return response;
     },
 
     getShelterReviews: async (shelterId: string, params: { page?: number; limit?: number } = {}) => {
-        const response = await api.get(`/api/reviews/shelters/${shelterId}/reviews`, { params });
+        const response = await api.get(endpoints.reviews.shelterReviews(shelterId), { params });
         return response;
     },
 
     respondToReview: async (reviewId: string, response: string) => {
-        const apiResponse = await api.post(`/api/reviews/${reviewId}/response`, { content: response });
+        const apiResponse = await api.post(endpoints.reviews.respond(reviewId), { content: response });
         return apiResponse;
     },
 };
@@ -806,22 +882,22 @@ export const adoptionApi = {
 
     // New workflow methods
     performPreliminaryEvaluation: async (id: string, evaluation: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/evaluate`, evaluation);
+        const response = await api.post(endpoints.adoptions.evaluate(id), evaluation);
         return response.data.data;
     },
 
     updateInterviewResults: async (id: string, results: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/interview-results`, results);
+        const response = await api.post(endpoints.adoptions.interviewResults(id), results);
         return response.data.data;
     },
 
     updateHomeVisitResults: async (id: string, results: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/home-visit-results`, results);
+        const response = await api.post(endpoints.adoptions.homeVisitResults(id), results);
         return response.data.data;
     },
 
     approveAdoptionRequest: async (id: string, approvalDetails: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/approve`, approvalDetails);
+        const response = await api.post(endpoints.adoptions.approve(id), approvalDetails);
         return response.data.data;
     },
 
@@ -835,12 +911,12 @@ export const adoptionApi = {
             generatePdf: payload.generatePdf !== false,
         };
 
-        const response = await api.post(`/api/adoptions/${id}/contract/generate`, contractDetails);
+        const response = await api.post(endpoints.adoptions.contractGenerate(id), contractDetails);
         return response.data.data;
     },
 
     getContractFile: async (id: string, config?: any): Promise<string> => {
-        const response = await api.get(`/api/adoptions/${id}/contract/file`, config);
+        const response = await api.get(endpoints.adoptions.contractFile(id), config);
         return response.data.url || response.data;
     },
 
@@ -850,121 +926,121 @@ export const adoptionApi = {
     },
 
     signContract: async (id: string, signatureDetails: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/contract/sign`, signatureDetails);
+        const response = await api.post(endpoints.adoptions.contractSign(id), signatureDetails);
         return response.data.data;
     },
 
     sendContract: async (id: string): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/contract/send`, {});
+        const response = await api.post(endpoints.adoptions.contractSend(id), {});
         return response.data.data;
     },
 
     completeHandover: async (id: string, handoverDetails: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/handover/complete`, handoverDetails);
+        const response = await api.post(endpoints.adoptions.handoverComplete(id), handoverDetails);
         return response.data.data;
     },
 
     completeAdoption: async (id: string): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/complete`);
+        const response = await api.post(endpoints.adoptions.complete(id));
         return response.data.data;
     },
 
     schedulePostAdoptionFollowUp: async (id: string, followUpData: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/post-adoption-follow-up`, followUpData);
+        const response = await api.post(endpoints.adoptions.postAdoptionFollowUp(id), followUpData);
         return response.data.data;
     },
 
     completeFollowUp: async (id: string, followUpId: string, completionData: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/follow-up/${followUpId}/complete`, completionData);
+        const response = await api.post(endpoints.adoptions.followUpComplete(id, followUpId), completionData);
         return response.data.data;
     },
 
     // Meeting methods
     scheduleMeeting: async (id: string, meetingData: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/meetings`, meetingData);
+        const response = await api.post(endpoints.adoptions.meetings(id), meetingData);
         return response.data.data;
     },
 
     updateMeetingStatus: async (id: string, meetingId: string, status: string, notes?: string): Promise<Adoption> => {
-        const response = await api.patch(`/api/adoptions/${id}/meetings/${meetingId}`, { status, notes });
+        const response = await api.patch(endpoints.adoptions.meetingUpdate(id, meetingId), { status, notes });
         return response.data.data;
     },
 
     getAdoptionRequestMeetings: async (id: string): Promise<{ meetings: AdoptionMeeting[] }> => {
-        const response = await api.get(`/api/adoptions/${id}/meetings`);
+        const response = await api.get(endpoints.adoptions.meetings(id));
         return response.data.data;
     },
 
     // User-specific functions for accessing their own adoption request data
     getUserAdoptionRequestDetails: async (requestId: string): Promise<{ data: any }> => {
-        const response = await api.get(`/api/adoptions/${requestId}/user-details`);
+        const response = await api.get(endpoints.adoptions.userDetails(requestId));
         return response.data;
     },
 
     getUserAdoptionRequestMeetings: async (requestId: string): Promise<{ data: any[] }> => {
-        const response = await api.get(`/api/adoptions/${requestId}/user-meetings`);
+        const response = await api.get(endpoints.adoptions.userMeetings(requestId));
         return response.data;
     },
 
     getUserInformationRequests: async (requestId: string): Promise<{ data: any[] }> => {
-        const response = await api.get(`/api/adoptions/${requestId}/user-information-requests`);
+        const response = await api.get(endpoints.adoptions.userInformationRequests(requestId));
         return response.data;
     },
 
     scheduleHandover: async (id: string, handoverData: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/handover`, handoverData);
+        const response = await api.post(endpoints.adoptions.handover(id), handoverData);
         return response.data.data;
     },
 
     makeFinalDecision: async (id: string, decision: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/decision`, decision);
+        const response = await api.post(endpoints.adoptions.decision(id), decision);
         return response.data.data;
     },
 
     scheduleFollowUp: async (id: string, followUpData: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/follow-up`, followUpData);
+        const response = await api.post(endpoints.adoptions.followUp(id), followUpData);
         return response.data.data;
     },
 
     // Information Request Methods
     createInformationRequest: async (id: string, requestData: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/information-request`, requestData);
+        const response = await api.post(endpoints.adoptions.informationRequest(id), requestData);
         return response.data.data;
     },
 
     submitInformationResponse: async (id: string, responseData: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/information-response`, responseData);
+        const response = await api.post(endpoints.adoptions.informationResponse(id), responseData);
         return response.data.data;
     },
 
     getInformationRequests: async (id: string): Promise<{ data: any[] }> => {
-        const response = await api.get(`/api/adoptions/${id}/information-requests`);
+        const response = await api.get(endpoints.adoptions.informationRequests(id));
         return response.data;
     },
 
     reviewInformationRequest: async (id: string, reviewData: any): Promise<Adoption> => {
-        const response = await api.patch(`/api/adoptions/${id}/information-request/${reviewData.informationRequestId}`, reviewData);
+        const response = await api.patch(endpoints.adoptions.informationRequestReview(id, reviewData.informationRequestId), reviewData);
         return response.data.data;
     },
 
     deleteInformationRequest: async (id: string, requestId: string): Promise<Adoption> => {
-        const response = await api.delete(`/api/adoptions/${id}/information-request/${requestId}`);
+        const response = await api.delete(endpoints.adoptions.informationRequestDelete(id, requestId));
         return response.data.data;
     },
 
     sendInformationRequestReminder: async (id: string, reminderData: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/information-request-reminder`, reminderData);
+        const response = await api.post(endpoints.adoptions.informationRequestReminder(id), reminderData);
         return response.data.data;
     },
 
 
     uploadContractDocument: async (id: string, documentData: any): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/contract-documents`, documentData);
+        const response = await api.post(endpoints.adoptions.contractDocuments(id), documentData);
         return response.data.data;
     },
 
     deleteContractDocument: async (id: string, documentId: string): Promise<Adoption> => {
-        const response = await api.delete(`/api/adoptions/${id}/contract-documents/${documentId}`);
+        const response = await api.delete(endpoints.adoptions.contractDocumentDelete(id, documentId));
         return response.data.data;
     }
 };
@@ -1003,7 +1079,7 @@ export const userApi = {
         try {
             // Note: Backend only expects petId in URL params, no request body needed
             // The user ID is extracted from the auth token by the backend
-            const response = await api.post(`/api/users/viewed-pets/${petId}`);
+            const response = await api.post(endpoints.user.addViewedPet(petId));
             console.log("✅ addViewedPet success (idempotent):", response.data);
             return response;
         } catch (e) {
@@ -1023,7 +1099,7 @@ export const userApi = {
     },
 
     toggleFavorite: async (petId: string) => {
-        const response = await api.post(`/api/users/favorite-pets/${petId}`);
+        const response = await api.post(endpoints.user.toggleFavorite(petId));
         return response;
     },
 
@@ -1038,24 +1114,24 @@ export const userApi = {
     },
 
     changePassword: async (data: any) => {
-        const response = await api.put('/api/users/change-password', data);
+        const response = await api.put(endpoints.user.changePassword, data);
         return response;
     },
 
     updateAddress: async (data: any) => {
-        const response = await api.put('/api/users/profile/address', data);
+        const response = await api.put(endpoints.user.updateAddress, data);
         return response;
     },
 
     updateSecuritySettings: async (data: any) => {
-        const response = await api.put('/api/users/profile/security', data);
+        const response = await api.put(endpoints.user.updateSecuritySettings, data);
         return response;
     },
 
     uploadAvatar: async (file: File) => {
         const formData = new FormData();
         formData.append('avatar', file);
-        const response = await api.post('/api/users/avatar', formData, {
+        const response = await api.post(endpoints.user.avatar, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -1064,7 +1140,7 @@ export const userApi = {
     },
 
     deleteAvatar: async () => {
-        const response = await api.delete('/api/users/avatar');
+        const response = await api.delete(endpoints.user.avatar);
         return response;
     },
 };
@@ -1097,7 +1173,7 @@ export const shelterApi = {
     },
 
     getAllShelters: async () => {
-        const response = await api.get('/api/shelters');
+        const response = await api.get(endpoints.shelter.list);
         return response.data;
     },
 
@@ -1226,7 +1302,7 @@ export const testViewedPetsEndpoint = async (testPetId: string = "507f1f77bcf86c
         }
 
         // Test the endpoint
-        const response = await api.post(`/api/users/viewed-pets/${testPetId}`);
+        const response = await api.post(endpoints.user.addViewedPet(testPetId));
         console.log("✅ Test successful:", response.data);
         return true;
     } catch (error: any) {
