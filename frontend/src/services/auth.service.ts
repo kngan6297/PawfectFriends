@@ -1,5 +1,5 @@
 import { LoginFormData, RegisterFormData, AuthServiceResponse } from '../types/auth';
-import { api } from './api';
+import { api, endpoints } from './api';
 import { parseApiError } from '../utils/error-handler';
 
 // Enhanced result type with field errors
@@ -17,7 +17,7 @@ type LoginResult = {
 export const authService = {
     async login(data: LoginFormData): Promise<LoginResult> {
         try {
-            const response = await api.post('/api/auth/login', {
+            const response = await api.post(endpoints.auth.login, {
                 emailOrPhone: data.emailOrPhone,
                 password: data.password
             });
@@ -62,7 +62,7 @@ export const authService = {
 
     async register(data: RegisterFormData): Promise<LoginResult> {
         try {
-            const response = await api.post('/api/auth/register', data);
+            const response = await api.post(endpoints.auth.register, data);
             return {
                 success: true,
                 ...response.data
