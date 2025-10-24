@@ -152,9 +152,15 @@ const getApiBaseUrl = () => {
 
     // In production, the backend service handles routes starting with /api
     if (baseUrl.includes('api.pawfectfriends.xyz')) {
-        // For api.pawfectfriends.xyz, don't add /api since the backend routes are already mounted at /api
-        console.log('🔧 Using production URL without adding /api:', baseUrl);
-        return baseUrl;
+        // For api.pawfectfriends.xyz, we need to add /api since backend routes are mounted at /api
+        if (baseUrl.endsWith('/api')) {
+            console.log('🔧 Using existing /api URL:', baseUrl);
+            return baseUrl;
+        }
+        // Add /api to the path
+        const result = `${baseUrl}/api`;
+        console.log('🔧 Adding /api to production URL:', result);
+        return result;
     }
 
     // For local development, add /api if not present
