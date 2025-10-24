@@ -9,7 +9,6 @@ export const endpoints = {
         search: "/pets/search",
         similar: (id: string) => `/pets/${id}/similar`,
         latest: "/pets/latest",
-        toggleFavorite: (id: string) => `/pets/${id}/toggle-favorite`,
         favoriteCheck: (id: string) => `/pets/${id}/favorite/check`,
         getById: (id: string) => `/pets/${id}`,
         shelterStats: "/pets/shelter/stats",
@@ -473,7 +472,7 @@ export const petApi = {
     },
 
     toggleFavorite: async (id: string) => {
-        return api.patch(endpoints.pets.toggleFavorite(id));
+        return api.post(endpoints.user.toggleFavorite(id));
     },
 
     checkFavoriteStatus: async (id: string) => {
