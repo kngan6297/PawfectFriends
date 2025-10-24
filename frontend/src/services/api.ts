@@ -47,8 +47,20 @@ export const endpoints = {
     }
 } as const;
 
+// Ensure API URL has /api prefix for production
+const getApiBaseUrl = () => {
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    
+    // In production, ensure the URL ends with /api
+    if (baseUrl.includes('api.pawfectfriends.xyz') && !baseUrl.endsWith('/api')) {
+        return `${baseUrl}/api`;
+    }
+    
+    return baseUrl;
+};
+
 export const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
+    baseURL: getApiBaseUrl(),
     headers: {
         "Content-Type": "application/json",
     },
