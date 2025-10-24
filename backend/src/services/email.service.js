@@ -73,7 +73,18 @@ class EmailService {
     }
 
     try {
-      const verificationUrl = `${config.clientUrl}/verify-email?token=${encodeURIComponent(token)}`;
+      // Use CLIENT_URL from environment, fallback to production URL if not set
+      const clientUrl = config.clientUrl || (process.env.NODE_ENV === 'production' ? 'https://pawfectfriends.xyz' : 'http://localhost:3000');
+      const verificationUrl = `${clientUrl}/verify-email?token=${encodeURIComponent(token)}`;
+      
+      // Debug logging for verification URL
+      logger.info('Email verification URL generated:', {
+        clientUrl: config.clientUrl,
+        fallbackClientUrl: clientUrl,
+        verificationUrl,
+        environment: process.env.NODE_ENV,
+        hasClientUrlEnv: !!process.env.CLIENT_URL
+      });
 
       const mailOptions = {
         from: config.email.from,
@@ -128,7 +139,9 @@ class EmailService {
     }
 
     try {
-      const resetUrl = `${config.clientUrl}/reset-password?token=${token}`;
+      // Use CLIENT_URL from environment, fallback to production URL if not set
+      const clientUrl = config.clientUrl || (process.env.NODE_ENV === 'production' ? 'https://pawfectfriends.xyz' : 'http://localhost:3000');
+      const resetUrl = `${clientUrl}/reset-password?token=${token}`;
 
       const mailOptions = {
         from: config.email.from,
