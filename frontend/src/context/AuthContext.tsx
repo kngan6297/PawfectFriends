@@ -14,7 +14,7 @@ import { normalizePhoneNumber, isPhoneNumber } from "@/utils/phone-formatter";
 import { User } from "@/types/user";
 import { AuthServiceResponse } from "@/types/auth";
 import { useNavigate } from "react-router-dom";
-import { authApi, userApi } from "@/services/api";
+import { authApi, userApi, endpoints } from "@/services/api";
 import { RedirectManager, UserRole } from "@/utils/redirects";
 import { useToastContext } from "@/components/ui/ToastProvider";
 import { Pet } from "@/types/pet";
@@ -75,7 +75,7 @@ api.interceptors.request.use(
           const response = await axios.post(
             `${
               import.meta.env.VITE_API_URL || "http://localhost:5000"
-            }/api/auth/refresh-token`,
+            }${endpoints.auth.refreshToken}`,
             {},
             { withCredentials: true }
           );
@@ -135,7 +135,7 @@ api.interceptors.response.use(
         const response = await axios.post(
           `${
             import.meta.env.VITE_API_URL || "http://localhost:5000"
-          }/api/auth/refresh-token`,
+          }${endpoints.auth.refreshToken}`,
           {},
           { withCredentials: true }
         );
@@ -591,7 +591,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(async () => {
     try {
       // Call the logout endpoint to invalidate the refresh token
-      await api.post("/api/auth/logout");
+      await api.post(endpoints.auth.logout);
     } catch (error) {
       console.error("Logout error:", error);
       // Continue with logout even if the API call fails
@@ -700,7 +700,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const forgotPassword = async (email: string) => {
     try {
-      const response = await api.post("/api/auth/forgot-password", { email });
+      const response = await api.post(endpoints.auth.forgotPassword, { email });
       if (response.data.status === "success") {
         showToast({
           type: "success",
@@ -726,7 +726,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     confirmPassword: string
   ) => {
     try {
-      const response = await api.post("/api/auth/reset-password", {
+      const response = await api.post(endpoints.auth.resetPassword, {
         token,
         password,
         confirmPassword,
@@ -752,7 +752,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const verifyEmail = async (token: string) => {
     try {
-      const response = await api.get(`/api/auth/verify-email?token=${token}`);
+      const response = await api.get(`${endpoints.auth.verify}?token=${token}`);
       if (!response.data.success) {
         throw new Error(response.data.message || "Verification failed");
       }
@@ -845,7 +845,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const response = await axios.post(
           `${
             import.meta.env.VITE_API_URL || "http://localhost:5000"
-          }/api/auth/refresh-token`,
+          }${endpoints.auth.refreshToken}`,
           {},
           { withCredentials: true }
         );

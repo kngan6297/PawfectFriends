@@ -36,7 +36,7 @@ import {
   SelectLabel,
   SelectSeparator,
 } from "../../components/ui/Select";
-import { api } from "@/services/api";
+import { api, endpoints } from "@/services/api";
 import { shelterApi } from "@/services/api";
 import { userApi } from "@/services/api";
 import {
@@ -175,7 +175,7 @@ const ShelterSettings: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await api.get("/api/users/profile");
+      const response = await api.get(endpoints.user.profile);
       const userData = response.data.data;
 
       if (userData) {
@@ -466,7 +466,7 @@ const ShelterSettings: React.FC = () => {
       setSaving(true);
       setError(null);
 
-      const response = await api.patch("/api/users/profile", settings);
+      const response = await api.patch(endpoints.user.updateProfile, settings);
 
       if (response.data.success) {
         toast.success("Settings saved successfully!");

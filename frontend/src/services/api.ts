@@ -36,12 +36,14 @@ export const endpoints = {
         test: "/api/notifications/test",
     },
     auth: {
-        login: "/api/auth/login",
-        register: "/api/auth/register",
-        logout: "/api/auth/logout",
-        verify: "/api/auth/verify",
-        forgotPassword: "/api/auth/forgot-password",
-        resetPassword: "/api/auth/reset-password",
+        login: "/auth/login",
+        register: "/auth/register",
+        logout: "/auth/logout",
+        verify: "/auth/verify-email",
+        resendVerification: "/auth/resend-verification",
+        refreshToken: "/auth/refresh-token",
+        forgotPassword: "/auth/forgot-password",
+        resetPassword: "/auth/reset-password",
     }
 } as const;
 
@@ -1018,21 +1020,21 @@ export const userApi = {
 
 export const authApi = {
     login: async (emailOrPhone: string, password: string) => {
-        const response = await api.post("/api/auth/login", { emailOrPhone, password });
+        const response = await api.post(endpoints.auth.login, { emailOrPhone, password });
         if (!response.data.success) {
             throw new Error(response.data.message || 'Login failed');
         }
         return response.data;
     },
     verifyEmail: async (token: string) => {
-        const response = await api.get(`/api/auth/verify-email?token=${token}`);
+        const response = await api.get(`${endpoints.auth.verify}?token=${token}`);
         if (!response.data.success) {
             throw new Error(response.data.message || 'Verification failed');
         }
         return response.data;
     },
     resendVerificationEmail: async (email: string) => {
-        const response = await api.post("/api/auth/resend-verification", { email });
+        const response = await api.post(endpoints.auth.resendVerification, { email });
         return response.data;
     },
 };
