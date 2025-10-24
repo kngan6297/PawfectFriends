@@ -32,6 +32,8 @@ services:
         sync: false
       - key: ZEGO_SERVER_SECRET
         sync: false
+      - key: CLIENT_URL
+        value: https://pawfectfriends.xyz
 
   - type: web
     name: pawfectfriends-ai
