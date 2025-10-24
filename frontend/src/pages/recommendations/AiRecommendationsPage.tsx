@@ -717,7 +717,7 @@ export const AiRecommendationsPage: React.FC<
         try {
           // Record the recommendation generation event
           const response = await api.post(
-            "/api/recommendations/interactions/record-enhanced",
+            "/recommendations/interactions/record-enhanced",
             {
               petId: null, // No specific pet for AI recommendations
               interactionType: "recommendation_generated",
