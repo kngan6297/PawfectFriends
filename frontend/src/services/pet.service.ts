@@ -1,11 +1,9 @@
-import axios from "axios";
+import { api, endpoints } from './api';
 import { Pet } from "@/types/pet";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
 export const petService = {
-    addFavorite: (petId: string) => axios.post(`${API_URL}/api/users/favorite-pets/${petId}`),
-    removeFavorite: (petId: string) => axios.delete(`${API_URL}/api/users/favorite-pets/${petId}`),
+    addFavorite: (petId: string) => api.post(endpoints.user.toggleFavorite(petId)),
+    removeFavorite: (petId: string) => api.delete(endpoints.user.toggleFavorite(petId)),
     getPetActivityLogs: (petId: string, params?: any) =>
-        axios.get(`${API_URL}/api/activities/pet/${petId}`, { params }),
+        api.get(`/activities/pet/${petId}`, { params }),
 }; 

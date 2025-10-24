@@ -774,7 +774,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       setAuthToken(token);
-      const response = await api.post(`/api/users/favorite-pets/${petId}`);
+      const response = await api.post(endpoints.user.toggleFavorite(petId));
 
       if (response.data.success) {
         const isFavorited = response.data.data.isSaved;
@@ -782,7 +782,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (isFavorited) {
           // Add to favorites - we need to fetch the pet details
           try {
-            const petResponse = await api.get(`/api/pets/${petId}`);
+            const petResponse = await api.get(endpoints.pets.getById(petId));
             if (petResponse.data.success) {
               const newPet = petResponse.data.data;
               setFavoritePets((prev) => [...prev, newPet]);
