@@ -309,10 +309,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Use a simple API call to check if user is authenticated
             const key = requestDeduplication.generateKey(
               "GET",
-              "/api/users/profile"
+              endpoints.user.profile
             );
             const response = await requestDeduplication.execute(key, () =>
-              api.get("/api/users/profile")
+              api.get(endpoints.user.profile)
             );
             if (response.data.success) {
               setAuthenticated(true);
@@ -379,10 +379,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           const key = requestDeduplication.generateKey(
             "GET",
-            "/api/users/favorite-pets"
+            endpoints.user.favorites
           );
           const response = await requestDeduplication.execute(key, () =>
-            api.get("/api/users/favorite-pets")
+            api.get(endpoints.user.favorites)
           );
 
           // Handle the correct response structure: { success: true, data: [...] }
@@ -438,10 +438,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const key = requestDeduplication.generateKey(
         "GET",
-        "/api/users/favorite-pets"
+        endpoints.user.favorites
       );
       const response = await requestDeduplication.execute(key, () =>
-        api.get("/api/users/favorite-pets")
+        api.get(endpoints.user.favorites)
       );
 
       if (response.data.success && Array.isArray(response.data.data)) {
@@ -617,7 +617,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUser = async (data: any) => {
     try {
-      const response = await api.put("/api/users/profile", data);
+      const response = await api.put(endpoints.user.updateProfile, data);
       if (response.data.success) {
         setUser(response.data.data);
         localStorage.setItem("user", JSON.stringify(response.data.data));
@@ -670,7 +670,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     profileRefreshAttempts.current += 1;
 
     try {
-      const key = requestDeduplication.generateKey("GET", "/api/users/profile");
+      const key = requestDeduplication.generateKey("GET", endpoints.user.profile);
       const profileResponse = await requestDeduplication.execute(key, () =>
         userApi.getProfile()
       );
