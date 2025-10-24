@@ -150,13 +150,14 @@ const getApiBaseUrl = () => {
         endsWithApi: baseUrl.endsWith('/api')
     });
 
+    // Check if URL already ends with /api to avoid duplication
+    if (baseUrl.endsWith('/api')) {
+        console.log('🔧 Using existing /api URL:', baseUrl);
+        return baseUrl;
+    }
+
     // In production, the backend service handles routes starting with /api
     if (baseUrl.includes('api.pawfectfriends.xyz')) {
-        // For api.pawfectfriends.xyz, we need to add /api since backend routes are mounted at /api
-        if (baseUrl.endsWith('/api')) {
-            console.log('🔧 Using existing /api URL:', baseUrl);
-            return baseUrl;
-        }
         // Add /api to the path
         const result = `${baseUrl}/api`;
         console.log('🔧 Adding /api to production URL:', result);
@@ -164,7 +165,7 @@ const getApiBaseUrl = () => {
     }
 
     // For local development, add /api if not present
-    if (baseUrl === "http://localhost:5000" && !baseUrl.endsWith('/api')) {
+    if (baseUrl === "http://localhost:5000") {
         const result = `${baseUrl}/api`;
         console.log('🔧 Adding /api to local URL:', result);
         return result;
@@ -181,6 +182,9 @@ export const api = axios.create({
     },
     withCredentials: true,
 });
+
+// Export the API base URL for use in other files
+export const API_BASE_URL = getApiBaseUrl();
 
 // List of public endpoints that don't require authentication
 const PUBLIC_ENDPOINTS = [

@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
-import { adoptionApi } from "@/services/api";
+import { adoptionApi, API_BASE_URL } from "@/services/api";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -98,7 +98,7 @@ const ContractDocument: React.FC<ContractDocumentProps> = ({
 
       // Upload file to storage
       const uploadResponse = await fetch(
-        `${import.meta.env.VITE_API_URL}/adoptions/upload-contract`,
+        `${API_BASE_URL}/adoptions/upload-contract`,
         {
           method: "POST",
           body: formData,
@@ -390,21 +390,12 @@ const ContractDocument: React.FC<ContractDocumentProps> = ({
                     </p>
 
                     <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      <span>
-                        Uploaded:{" "}
-                        {formatDisplayDate($1)}
-                      </span>
+                      <span>Uploaded: {formatDisplayDate($1)}</span>
                       {document.sentAt && (
-                        <span>
-                          Sent:{" "}
-                          {formatDisplayDate($1)}
-                        </span>
+                        <span>Sent: {formatDisplayDate($1)}</span>
                       )}
                       {document.signedAt && (
-                        <span>
-                          Signed:{" "}
-                          {formatDisplayDate($1)}
-                        </span>
+                        <span>Signed: {formatDisplayDate($1)}</span>
                       )}
                     </div>
                   </div>

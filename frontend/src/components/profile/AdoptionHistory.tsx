@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { API_BASE_URL } from "@/services/api";
 
 interface AdoptionRequest {
   _id: string;
@@ -23,14 +24,11 @@ export default function AdoptionHistory() {
   useEffect(() => {
     const fetchAdoptionHistory = async () => {
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/adoption-requests/user`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
+        const response = await fetch(`${API_BASE_URL}/adoption-requests/user`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
 
         if (!response.ok) {
           throw new Error("Failed to fetch adoption history");

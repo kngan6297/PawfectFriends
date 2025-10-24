@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
-import { adoptionApi } from "@/services/api";
+import { adoptionApi, API_BASE_URL } from "@/services/api";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -131,13 +131,10 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
       formData.append("name", selectedFile.name);
 
       // Upload file to storage
-      const uploadResponse = await fetch(
-        `${import.meta.env.VITE_API_URL}/adoptions/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const uploadResponse = await fetch(`${API_BASE_URL}/adoptions/upload`, {
+        method: "POST",
+        body: formData,
+      });
 
       if (!uploadResponse.ok) {
         throw new Error("Failed to upload file");

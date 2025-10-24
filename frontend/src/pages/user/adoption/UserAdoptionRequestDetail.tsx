@@ -6,7 +6,7 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { adoptionApi } from "@/services/api";
+import { adoptionApi, API_BASE_URL } from "@/services/api";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, Home, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
@@ -204,8 +204,7 @@ const UserAdoptionRequestDetailPage: React.FC = () => {
 
       // Relative URL (starts with /) → prefix with backend URL
       if (url.startsWith("/")) {
-        const backendUrl =
-          import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const backendUrl = API_BASE_URL;
         window.open(`${backendUrl}${url}`, "_blank");
         return;
       }
@@ -260,8 +259,7 @@ const UserAdoptionRequestDetailPage: React.FC = () => {
 
       // Relative URL (starts with /) → prefix with backend URL
       if (url && url.startsWith("/")) {
-        const backendUrl =
-          import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const backendUrl = API_BASE_URL;
         const a = document.createElement("a");
         a.href = `${backendUrl}${url}`;
         a.download =
