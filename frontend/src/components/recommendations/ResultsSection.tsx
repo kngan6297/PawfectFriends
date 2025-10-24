@@ -228,6 +228,7 @@ export const ResultsSection: React.FC<ResultsSectionProps> = ({
                   rule_score={scoredPet.rule_score}
                   learned_bonus={scoredPet.learned_bonus}
                   onPetInteraction={onPetInteraction}
+                  onFavoriteToggle={(petId, newIsFavorite) => onPetInteraction(petId, "favorite")}
                   onFeedback={onFeedback}
                   showAdvancedOptions={showAdvancedOptions}
                   suppressBadges={false}
