@@ -38,7 +38,6 @@ import { PetCard } from "@/components/pet/PetCard";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useFavoritePets } from "@/hooks/useFavoritePets";
 import { useToastContext } from "@/components/ui/ToastProvider";
-import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 
 interface DashboardStats {
   totalFavorites: number;
@@ -265,9 +264,6 @@ const Dashboard: React.FC = () => {
               Your pet adoption dashboard - track your journey and discover your
               perfect companion
             </p>
-          </div>
-          <div className="flex space-x-4 mt-4 md:mt-0">
-            <NotificationCenter />
           </div>
         </div>
       </div>
