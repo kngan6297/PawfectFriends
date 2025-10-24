@@ -11,11 +11,11 @@ export const VerificationStatus: React.FC = () => {
   const { showToast } = useToastContext();
 
   const handleResendVerification = async () => {
-    if (!user) return;
+    if (!user || !user.email) return;
 
     setLoading(true);
     try {
-      await authApi.resendVerification();
+      await authApi.resendVerificationEmail(user.email);
       showToast({
         type: "success",
         title: "Success",

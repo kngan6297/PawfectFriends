@@ -1018,21 +1018,21 @@ export const userApi = {
 
 export const authApi = {
     login: async (emailOrPhone: string, password: string) => {
-        const response = await api.post("/auth/login", { emailOrPhone, password });
+        const response = await api.post("/api/auth/login", { emailOrPhone, password });
         if (!response.data.success) {
             throw new Error(response.data.message || 'Login failed');
         }
         return response.data;
     },
     verifyEmail: async (token: string) => {
-        const response = await api.get(`/auth/verify-email?token=${token}`);
+        const response = await api.get(`/api/auth/verify-email?token=${token}`);
         if (!response.data.success) {
             throw new Error(response.data.message || 'Verification failed');
         }
         return response.data;
     },
-    resendVerificationEmail: async () => {
-        const response = await api.post("/auth/resend-verification");
+    resendVerificationEmail: async (email: string) => {
+        const response = await api.post("/api/auth/resend-verification", { email });
         return response.data;
     },
 };
