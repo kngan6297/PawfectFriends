@@ -73,9 +73,9 @@ api.interceptors.request.use(
       if (isTokenExpiringSoon(token)) {
         try {
           const response = await axios.post(
-            `${
-              import.meta.env.VITE_API_URL || "http://localhost:5000"
-            }${endpoints.auth.refreshToken}`,
+            `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${
+              endpoints.auth.refreshToken
+            }`,
             {},
             { withCredentials: true }
           );
@@ -133,9 +133,9 @@ api.interceptors.response.use(
       try {
         // Attempt to refresh the token
         const response = await axios.post(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:5000"
-          }${endpoints.auth.refreshToken}`,
+          `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${
+            endpoints.auth.refreshToken
+          }`,
           {},
           { withCredentials: true }
         );
@@ -670,7 +670,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     profileRefreshAttempts.current += 1;
 
     try {
-      const key = requestDeduplication.generateKey("GET", endpoints.user.profile);
+      const key = requestDeduplication.generateKey(
+        "GET",
+        endpoints.user.profile
+      );
       const profileResponse = await requestDeduplication.execute(key, () =>
         userApi.getProfile()
       );
@@ -752,7 +755,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const verifyEmail = async (token: string) => {
     try {
-      const response = await api.get(`${endpoints.auth.verify}?token=${token}`);
+      const url = `${endpoints.auth.verify}?token=${token}`;
+      console.log('🔧 verifyEmail - URL:', url);
+      console.log('🔧 verifyEmail - Base URL:', api.defaults.baseURL);
+      console.log('🔧 verifyEmail - Full URL:', `${api.defaults.baseURL}${url}`);
+      
+      const response = await api.get(url);
       if (!response.data.success) {
         throw new Error(response.data.message || "Verification failed");
       }
@@ -760,6 +768,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem("pendingVerificationEmail");
       return response.data;
     } catch (error: any) {
+      console.error('🔧 verifyEmail - Error:', error);
+      console.error('🔧 verifyEmail - Error URL:', error.config?.url);
       // Just throw the error, let the component handle the display
       throw error;
     }
@@ -843,9 +853,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isTokenExpiringSoon(currentToken)) {
       try {
         const response = await axios.post(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:5000"
-          }${endpoints.auth.refreshToken}`,
+          `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${
+            endpoints.auth.refreshToken
+          }`,
           {},
           { withCredentials: true }
         );

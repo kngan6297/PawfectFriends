@@ -6,6 +6,7 @@ import { Mail } from "lucide-react";
 import { useToastContext } from "@/components/ui/ToastProvider";
 import { handleApiError } from "@/utils/error-handler";
 import { RedirectManager } from "@/utils/redirects";
+import { authApi } from "@/services/api";
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
@@ -68,18 +69,8 @@ export default function VerifyEmail() {
         return;
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/auth/resend-verification`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email }),
-        }
-      );
-
-      const data = await response.json();
+      // Use the authApi instead of direct fetch to ensure proper URL construction
+      const data = await authApi.resendVerificationEmail(email);
 
       if (data.success) {
         setMessage(
