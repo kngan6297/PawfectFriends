@@ -1,4 +1,4 @@
-import { api } from '@/services/api';
+import { api, endpoints } from '@/services/api';
 import { Pet } from '@/types/pet';
 import { UserRequirements } from '@/types/user';
 
@@ -58,7 +58,7 @@ export const recommendationService = {
     async getPetRecommendations(): Promise<Pet[]> {
         try {
             // Use the correct backend endpoint for personalized recommendations
-            const response = await api.get('/api/recommendations/personalized');
+            const response = await api.get(endpoints.recommendations.personalized);
             console.log('Recommendation response:', response.data);
 
             // The backend returns recommendations with pet objects nested inside

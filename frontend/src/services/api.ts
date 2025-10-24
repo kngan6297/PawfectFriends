@@ -44,6 +44,22 @@ export const endpoints = {
         refreshToken: "/auth/refresh-token",
         forgotPassword: "/auth/forgot-password",
         resetPassword: "/auth/reset-password",
+    },
+    recommendations: {
+        personalized: "/recommendations/personalized",
+    },
+    adoptions: {
+        list: "/adoptions",
+        user: "/adoptions/user",
+        create: (petId: string) => `/adoptions/${petId}`,
+        getById: (id: string) => `/adoptions/${id}`,
+        updateApplication: (id: string) => `/adoptions/${id}/application`,
+        updateStatus: (id: string) => `/adoptions/${id}`,
+        addNote: (id: string) => `/adoptions/${id}/notes`,
+        addTimelineEvent: (id: string) => `/adoptions/${id}/timeline`,
+        uploadDocument: (id: string) => `/adoptions/${id}/documents`,
+        verifyDocument: (id: string, documentId: string) => `/adoptions/${id}/documents/${documentId}`,
+        deleteDocument: (id: string, documentId: string) => `/adoptions/${id}/documents/${documentId}`,
     }
 } as const;
 
@@ -728,29 +744,29 @@ interface Adoption extends AdoptionRequestType {
 
 export const adoptionApi = {
     getAll: async (): Promise<Adoption[]> => {
-        const response = await api.get('/api/adoptions');
+        const response = await api.get(endpoints.adoptions.list);
         return response.data.data;
     },
     getById: async (id: string): Promise<Adoption> => {
-        const response = await api.get(`/api/adoptions/${id}`);
+        const response = await api.get(endpoints.adoptions.getById(id));
         return response.data.data;
     },
     getUserRequests: async (params: { status?: string; page?: number; limit?: number } = {}): Promise<{ data: Adoption[]; pagination: any }> => {
-        const response = await api.get('/api/adoptions/user', { params });
+        const response = await api.get(endpoints.adoptions.user, { params });
         return response.data;
     },
     createRequest: async (petId: string, applicationDetails: AdoptionApplicationDetails): Promise<Adoption> => {
         console.log("🐾 Creating adoption request for petId:", petId);
-        const response = await api.post(`/api/adoptions/${petId}`, applicationDetails);
+        const response = await api.post(endpoints.adoptions.create(petId), applicationDetails);
         return response.data.data;
     },
     updateApplication: async (id: string, applicationDetails: AdoptionApplicationDetails): Promise<Adoption> => {
         console.log("🐾 Updating adoption application for id:", id);
-        const response = await api.put(`/api/adoptions/${id}/application`, applicationDetails);
+        const response = await api.put(endpoints.adoptions.updateApplication(id), applicationDetails);
         return response.data.data;
     },
     updateStatus: async (id: string, status: Adoption['status'], rejectionReason?: string, conditions?: string[]): Promise<Adoption> => {
-        const response = await api.patch(`/api/adoptions/${id}`, { status, rejectionReason, conditions });
+        const response = await api.patch(endpoints.adoptions.updateStatus(id), { status, rejectionReason, conditions });
         return response.data.data;
     },
     addNote: async (id: string, noteData: { content: string; isInternal?: boolean; isMilestone?: boolean; timelineStatus?: string }): Promise<Adoption> => {
@@ -768,23 +784,23 @@ export const adoptionApi = {
 
         console.log("📝 API call - cleanNoteData:", cleanNoteData);
 
-        const response = await api.post(`/api/adoptions/${id}/notes`, cleanNoteData);
+        const response = await api.post(endpoints.adoptions.addNote(id), cleanNoteData);
         return response.data.data;
     },
     addTimelineEvent: async (id: string, status: string, note: string, updatedBy: string): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/timeline`, { status, note, updatedBy });
+        const response = await api.post(endpoints.adoptions.addTimelineEvent(id), { status, note, updatedBy });
         return response.data.data;
     },
     uploadDocument: async (id: string, document: Omit<AdoptionDocument, 'status' | 'uploadedAt' | 'verifiedAt' | 'verifiedBy'>): Promise<Adoption> => {
-        const response = await api.post(`/api/adoptions/${id}/documents`, document);
+        const response = await api.post(endpoints.adoptions.uploadDocument(id), document);
         return response.data.data;
     },
     verifyDocument: async (id: string, documentId: string, status: 'approved' | 'rejected'): Promise<Adoption> => {
-        const response = await api.patch(`/api/adoptions/${id}/documents/${documentId}`, { status });
+        const response = await api.patch(endpoints.adoptions.verifyDocument(id, documentId), { status });
         return response.data.data;
     },
     deleteDocument: async (id: string, documentId: string): Promise<Adoption> => {
-        const response = await api.delete(`/api/adoptions/${id}/documents/${documentId}`);
+        const response = await api.delete(endpoints.adoptions.deleteDocument(id, documentId));
         return response.data.data;
     },
 
