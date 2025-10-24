@@ -386,6 +386,10 @@ export const recommendationClient = {
                 signal: controller.signal,
                 mode: 'cors', // Explicitly set CORS mode
                 credentials: 'omit', // Don't send credentials for health check
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                }
             });
 
             clearTimeout(timeoutId);
@@ -395,11 +399,23 @@ export const recommendationClient = {
                 status: response.status,
                 statusText: response.statusText,
                 ok: response.ok,
-                url: response.url
+                url: response.url,
+                headers: Object.fromEntries(response.headers.entries())
             });
 
             // If we get any successful response (2xx), the service is running
-            return response.ok;
+            if (response.ok) {
+                try {
+                    const data = await response.json();
+                    console.log('[AI Service] Health check data:', data);
+                    return data.status === 'OK';
+                } catch (jsonError) {
+                    console.warn('[AI Service] Failed to parse health check response:', jsonError);
+                    return true; // If we got a 200 response, service is likely OK
+                }
+            }
+
+            return false;
         } catch (error) {
             console.warn('[AI Service] Health check failed:', error);
 
@@ -407,8 +423,8 @@ export const recommendationClient = {
             if (error instanceof TypeError && error.message.includes('CORS')) {
                 console.log('[AI Service] CORS error detected, trying alternative health check...');
                 try {
-                    // Try to make a simple request to the root endpoint
-                    const fallbackResponse = await fetch(`${CONSTANTS.BASE_URL}/`, {
+                    // Try to make a simple request to the ping endpoint
+                    const fallbackResponse = await fetch(`${CONSTANTS.BASE_URL}/ping`, {
                         method: 'GET',
                         signal: controller.signal,
                         mode: 'no-cors', // Use no-cors mode as fallback

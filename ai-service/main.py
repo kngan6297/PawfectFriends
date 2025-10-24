@@ -25,10 +25,12 @@ app = FastAPI(
 ALLOWED_ORIGINS = [
     "http://localhost:5173", 
     "https://pawfectfriends.xyz",
+    "https://www.pawfectfriends.xyz",  # Add www subdomain
     "https://pawfectfriends-frontend.onrender.com",
     "https://your-frontend.app",
     "https://pawfectfriends.netlify.app",  # Add Netlify deployment
     "https://pawfectfriends.vercel.app",   # Add Vercel deployment
+    "*"  # Allow all origins for health checks (temporary fix)
 ]
 
 app.add_middleware(
@@ -257,12 +259,27 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Simple health check endpoint for Railway"""
-    return {
-        "status": "OK",
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0",
-        "environment": "production"
-    }
+    try:
+        # Check if the pet matching service is initialized
+        service_status = "OK" if pet_matching_service else "ERROR"
+        
+        return {
+            "status": "OK",
+            "service_status": service_status,
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0.0",
+            "environment": "production",
+            "cors_enabled": True
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return {
+            "status": "ERROR",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0.0",
+            "environment": "production"
+        }
 
 @app.get("/ping")
 async def ping():

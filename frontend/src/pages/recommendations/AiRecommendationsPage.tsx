@@ -780,11 +780,19 @@ export const AiRecommendationsPage: React.FC<
           type: "warning",
           title: "AI Service Warning",
           description:
-            "AI service may be unavailable. Recommendations may not work.",
+            "AI service may be unavailable. Recommendations may not work. Please try again later or contact support if the issue persists.",
         });
+      } else {
+        console.log("AI Service is healthy and ready");
       }
     } catch (error) {
       console.warn("AI Service health check failed:", error);
+      showToast({
+        type: "error",
+        title: "AI Service Error",
+        description:
+          "Unable to connect to AI service. Please check your internet connection and try again.",
+      });
     }
   }, [showToast]);
 
