@@ -89,7 +89,7 @@ class EmailService {
       if (process.env.NODE_ENV === 'production') {
         clientUrl = 'https://pawfectfriends.xyz';
       } else {
-        clientUrl = config.clientUrl || 'http://localhost:3000';
+        clientUrl = config.clientUrl || 'http://localhost:5173';
       }
       
       const verificationUrl = `${clientUrl}/verify-email?token=${encodeURIComponent(token)}`;
@@ -161,7 +161,7 @@ class EmailService {
       if (process.env.NODE_ENV === 'production') {
         clientUrl = 'https://pawfectfriends.xyz';
       } else {
-        clientUrl = config.clientUrl || 'http://localhost:3000';
+        clientUrl = config.clientUrl || 'http://localhost:5173';
       }
       
       const resetUrl = `${clientUrl}/reset-password?token=${token}`;
