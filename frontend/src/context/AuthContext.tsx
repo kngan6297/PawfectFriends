@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
@@ -7,15 +7,13 @@ import React, {
   ReactNode,
   useCallback,
 } from "react";
-import axios from "axios";
-import { toast } from "react-toastify";
 import { handleApiError } from "@/utils/error-handler";
 import { normalizePhoneNumber, isPhoneNumber } from "@/utils/phone-formatter";
 import { User } from "@/types/user";
 import { AuthServiceResponse } from "@/types/auth";
 import { useNavigate } from "react-router-dom";
-import { authApi, userApi, endpoints } from "@/services/api";
-import { RedirectManager, UserRole } from "@/utils/redirects";
+import { userApi, endpoints, api } from "@/services/api";
+import { RedirectManager } from "@/utils/redirects";
 import { useToastContext } from "@/components/ui/ToastProvider";
 import { Pet } from "@/types/pet";
 import { authService } from "@/services/auth.service";
@@ -36,14 +34,7 @@ const isTokenExpiringSoon = (token: string): boolean => {
   }
 };
 
-// Create axios instance with base configuration
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true,
-});
+// Use the axios instance from api.ts which has the correct base URL configuration
 
 // Flag to prevent multiple refresh attempts
 let isRefreshing = false;
@@ -72,10 +63,8 @@ api.interceptors.request.use(
       // Check if token is expiring soon and refresh if needed
       if (isTokenExpiringSoon(token)) {
         try {
-          const response = await axios.post(
-            `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${
-              endpoints.auth.refreshToken
-            }`,
+          const response = await api.post(
+            endpoints.auth.refreshToken,
             {},
             { withCredentials: true }
           );
@@ -132,10 +121,8 @@ api.interceptors.response.use(
 
       try {
         // Attempt to refresh the token
-        const response = await axios.post(
-          `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${
-            endpoints.auth.refreshToken
-          }`,
+        const response = await api.post(
+          endpoints.auth.refreshToken,
           {},
           { withCredentials: true }
         );
@@ -852,10 +839,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (isTokenExpiringSoon(currentToken)) {
       try {
-        const response = await axios.post(
-          `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${
-            endpoints.auth.refreshToken
-          }`,
+        const response = await api.post(
+          endpoints.auth.refreshToken,
           {},
           { withCredentials: true }
         );
