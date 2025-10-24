@@ -138,7 +138,8 @@ export const endpoints = {
     }
 } as const;
 
-// Ensure API URL has /api prefix for production
+// Get the base API URL without adding /api prefix
+// The endpoints object already includes /api prefixes
 const getApiBaseUrl = () => {
     const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -149,18 +150,10 @@ const getApiBaseUrl = () => {
         endsWithApi: baseUrl.endsWith('/api')
     });
 
-    // Check if URL already ends with /api to avoid duplication
-    if (baseUrl.endsWith('/api')) {
-        console.log('🔧 Using existing /api URL:', baseUrl);
-        return baseUrl;
-    }
-
-    // In production, the backend service handles routes starting with /api
+    // For production, use the URL as-is since endpoints already have /api prefix
     if (baseUrl.includes('api.pawfectfriends.xyz')) {
-        // Add /api to the path
-        const result = `${baseUrl}/api`;
-        console.log('🔧 Adding /api to production URL:', result);
-        return result;
+        console.log('🔧 Using production URL as-is:', baseUrl);
+        return baseUrl;
     }
 
     // For local development, add /api if not present
@@ -170,7 +163,7 @@ const getApiBaseUrl = () => {
         return result;
     }
 
-    console.log('🔧 Using local/dev URL:', baseUrl);
+    console.log('🔧 Using URL as-is:', baseUrl);
     return baseUrl;
 };
 
