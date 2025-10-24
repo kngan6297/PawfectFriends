@@ -73,8 +73,25 @@ class EmailService {
     }
 
     try {
-      // Use CLIENT_URL from environment, fallback to production URL if not set
-      const clientUrl = config.clientUrl || (process.env.NODE_ENV === 'production' ? 'https://pawfectfriends.xyz' : 'http://localhost:3000');
+      // Debug all environment variables related to URLs
+      logger.info('Email service environment debug:', {
+        NODE_ENV: process.env.NODE_ENV,
+        CLIENT_URL: process.env.CLIENT_URL,
+        FRONTEND_URL: process.env.FRONTEND_URL,
+        BASE_URL: process.env.BASE_URL,
+        configClientUrl: config.clientUrl,
+        configFrontendUrl: config.frontendUrl,
+        allEnvKeys: Object.keys(process.env).filter(key => key.includes('URL') || key.includes('CLIENT') || key.includes('FRONTEND'))
+      });
+
+      // Force production URL in production environment
+      let clientUrl;
+      if (process.env.NODE_ENV === 'production') {
+        clientUrl = 'https://pawfectfriends.xyz';
+      } else {
+        clientUrl = config.clientUrl || 'http://localhost:3000';
+      }
+      
       const verificationUrl = `${clientUrl}/verify-email?token=${encodeURIComponent(token)}`;
       
       // Debug logging for verification URL
@@ -139,8 +156,14 @@ class EmailService {
     }
 
     try {
-      // Use CLIENT_URL from environment, fallback to production URL if not set
-      const clientUrl = config.clientUrl || (process.env.NODE_ENV === 'production' ? 'https://pawfectfriends.xyz' : 'http://localhost:3000');
+      // Force production URL in production environment
+      let clientUrl;
+      if (process.env.NODE_ENV === 'production') {
+        clientUrl = 'https://pawfectfriends.xyz';
+      } else {
+        clientUrl = config.clientUrl || 'http://localhost:3000';
+      }
+      
       const resetUrl = `${clientUrl}/reset-password?token=${token}`;
 
       const mailOptions = {
