@@ -620,7 +620,7 @@ export const WizardRecommendationsPage: React.FC<
         try {
           // Record the wizard recommendation generation event
           const response = await api.post(
-            "/recommendations/interactions/record-enhanced",
+            "/api/recommendations/interactions/record-enhanced",
             {
               petId: null, // No specific pet for wizard recommendations
               interactionType: "recommendation_generated",
