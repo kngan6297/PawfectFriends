@@ -251,16 +251,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Only redirect to login if we're not in the middle of handling a backend reset
       const isHandlingBackendReset =
         localStorage.getItem("handlingBackendReset") === "true";
-      
+
       // Additional check: don't redirect if we have user data or token
       const hasUserData = user !== null;
       const hasToken = token !== null;
-      
+
       if (!isHandlingBackendReset && !hasUserData && !hasToken) {
         RedirectManager.redirectToLogin(navigate);
       }
     }
   }, [isAuthenticated, isLoading, navigate, user, token]);
+
+  // Listen for user profile updates from other components
+  useEffect(() => {
+    const handleUserProfileUpdate = (event: CustomEvent) => {
+      console.log(
+        "AuthContext: Received user profile update event",
+        event.detail
+      );
+      const updatedUser = event.detail;
+      setUser(updatedUser);
+    };
+
+    window.addEventListener(
+      "userProfileUpdated",
+      handleUserProfileUpdate as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "userProfileUpdated",
+        handleUserProfileUpdate as EventListener
+      );
+    };
+  }, []);
 
   // Initialize auth state from localStorage - only run once on mount
   useEffect(() => {

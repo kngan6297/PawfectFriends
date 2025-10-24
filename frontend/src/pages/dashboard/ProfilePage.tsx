@@ -112,8 +112,14 @@ export const ProfilePage: React.FC = () => {
     console.log("🐾 ProfilePage - profileData state updated:", profileData);
     if (profileData) {
       console.log("🐾 ProfilePage - profileData.name:", profileData.name);
-      console.log("🐾 ProfilePage - profileData.emailVerified:", profileData.emailVerified);
-      console.log("🐾 ProfilePage - profileData.createdAt:", profileData.createdAt);
+      console.log(
+        "🐾 ProfilePage - profileData.emailVerified:",
+        profileData.emailVerified
+      );
+      console.log(
+        "🐾 ProfilePage - profileData.createdAt:",
+        profileData.createdAt
+      );
     }
   }, [profileData]);
 
@@ -192,15 +198,39 @@ export const ProfilePage: React.FC = () => {
 
         if (profileData && isMounted) {
           console.log("🐾 ProfilePage - Fresh profile data:", profileData);
-          console.log("🐾 ProfilePage - Profile data keys:", Object.keys(profileData));
+          console.log(
+            "🐾 ProfilePage - Profile data keys:",
+            Object.keys(profileData)
+          );
           console.log("🐾 ProfilePage - Name:", profileData.name);
           console.log("🐾 ProfilePage - Email:", profileData.email);
-          console.log("🐾 ProfilePage - EmailVerified:", profileData.emailVerified);
+          console.log(
+            "🐾 ProfilePage - EmailVerified:",
+            profileData.emailVerified
+          );
           console.log("🐾 ProfilePage - CreatedAt:", profileData.createdAt);
           console.log("🐾 ProfilePage - Avatar:", profileData.avatar);
-          
+
           // Store profile data in state for profile overview section
           setProfileData(profileData);
+
+          // Update AuthContext with fresh profile data to sync navbar
+          if (profileData.name && profileData.email) {
+            console.log(
+              "🐾 ProfilePage - Updating AuthContext with fresh profile data"
+            );
+            // Update the AuthContext user data to sync with navbar
+            // This will trigger a re-render of the navbar with correct user data
+            const updatedUser = { ...user, ...profileData };
+            // Store updated user data in localStorage to sync with AuthContext
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            // Dispatch a custom event to notify AuthContext to refresh user data
+            window.dispatchEvent(
+              new CustomEvent("userProfileUpdated", {
+                detail: updatedUser,
+              })
+            );
+          }
 
           // Update form defaults
           profileForm.reset({
