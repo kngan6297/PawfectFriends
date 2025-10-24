@@ -321,7 +321,7 @@ export const recommendationService = {
         additionalData: any = {}
     ): Promise<any> {
         try {
-            const response = await api.post('/recommendations/interactions/record-enhanced', {
+            const response = await api.post('/api/recommendations/interactions/record-enhanced', {
                 petId,
                 interactionType,
                 timestamp: new Date().toISOString(),
