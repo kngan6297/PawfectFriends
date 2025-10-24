@@ -51,16 +51,27 @@ export const endpoints = {
 const getApiBaseUrl = () => {
     const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
     
+    console.log('🔧 API URL Debug:', {
+        originalViteApiUrl: import.meta.env.VITE_API_URL,
+        baseUrl,
+        isProduction: baseUrl.includes('api.pawfectfriends.xyz'),
+        endsWithApi: baseUrl.endsWith('/api')
+    });
+    
     // In production, ensure the URL ends with /api
     if (baseUrl.includes('api.pawfectfriends.xyz')) {
         // If it already ends with /api, don't add another one
         if (baseUrl.endsWith('/api')) {
+            console.log('🔧 Using existing /api URL:', baseUrl);
             return baseUrl;
         }
         // If it doesn't end with /api, add it
-        return `${baseUrl}/api`;
+        const result = `${baseUrl}/api`;
+        console.log('🔧 Adding /api to URL:', result);
+        return result;
     }
     
+    console.log('🔧 Using local/dev URL:', baseUrl);
     return baseUrl;
 };
 
